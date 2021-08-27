@@ -1,5 +1,5 @@
 ## A simpe example of socket communication between two Raspberry Pi.
-Before you stared, make sure to set static IP on both Pi. The following steps may help you to achieve this.
+Before you started, make sure to set static IP on both Pi. The following steps may help you to achieve this.
 1. check the IP address of the router by running
 
     ```
