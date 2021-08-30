@@ -79,11 +79,8 @@ while True:
     try:
         conn = setupConnection()
         dataTransfer(conn)
-        counter = counter + 0.01
-        sleep(1)
     except:
         break
-    
 
 
 
