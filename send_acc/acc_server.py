@@ -88,7 +88,7 @@ def data_transfer(conn):
         # received the data from the client
         data = conn.recv(1024) # buffer size: 1024
         data = data.decode('utf-8')
-
+        
         # Split the data. The first word is the command from the client
         data_msg = data.split(' ', 1)
         command = data_msg[0]
