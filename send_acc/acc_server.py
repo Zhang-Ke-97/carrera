@@ -45,7 +45,7 @@ def read_raw_accel(addr):
 
 # Set up server
 def setup_server():
-	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     print("sockt created")
     try:
         s.bind((host, port))
@@ -56,7 +56,7 @@ def setup_server():
 
 # Set up transmission 
 def set_up_connection():
-	s.listen(1) # allows one connection at a time
+    s.listen(1) # allows one connection at a time
     conn, address = s.accept()
     print("connected to client @"+address[0]+":"+str(address[1]))
     return conn
@@ -84,24 +84,24 @@ def TIME():
 
 # A big loop that sends/receives data
 def data_transfer(conn):
-	while True:
-		# received the data from the client
-		data = conn.recv(1024) # buffer size: 1024
-		data = data.decode('utf-8')
+    while True:
+        # received the data from the client
+        data = conn.recv(1024) # buffer size: 1024
+        data = data.decode('utf-8')
 
 		# Split the data. The first word is the command from the client
-		data_msg = data.split(' ', 1)
-		command = data_msg[0]
-		if command == 'TIME':
-			reply = TIME()
-		elif command == 'ACCEL':
-			reply = ACCEL()
-		else:
-			reply = 'Unknown command'+command
-		# Send the reply back to the client
-		conn.sendall(str.encode(reply))
+        data_msg = data.split(' ', 1)
+        command = data_msg[0]
+        if command == 'TIME':
+            reply = TIME()
+        elif command == 'ACCEL':
+            reply = ACCEL()
+        else:
+            reply = 'Unknown command'+command
+        # Send the reply back to the client
+        conn.sendall(str.encode(reply))
         print("Data has been sent: "+reply)
-	conn.close()
+    conn.close()
 
 
 ######### MAIN PROGRAMM STARTS HERE #########
