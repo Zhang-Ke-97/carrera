@@ -1,4 +1,4 @@
-import smbus			#import SMBus module of I2C
+import smbus                #import SMBus module of I2C     
 import socket
 from time import localtime, strftime, sleep
 
@@ -9,23 +9,23 @@ CONFIG       = 0x1A
 ACCEL_CONFIG = 0x1C
 INT_ENABLE   = 0x38
 ACCEL_XOUT_H = 0x3B
-ACCEL_YOUT_H = 0x3D
+ACCEL_YOUT_H = 0x3D 
 ACCEL_ZOUT_H = 0x3F
 
 # Configure the registers in MPU6050
 def MPU_Init():
     #write to sample rate register
     bus.write_byte_data(Device_Address, SMPLRT_DIV, 7)
-    
+
     #Write to power management register
     bus.write_byte_data(Device_Address, PWR_MGMT_1, 1)
-    
+
     #Write to Configuration register
     bus.write_byte_data(Device_Address, CONFIG, 0)
 
     #Write to Accel configuration register
     bus.write_byte_data(Device_Address, ACCEL_CONFIG, 0)
-    
+
     #Write to interrupt enable register
     bus.write_byte_data(Device_Address, INT_ENABLE, 1)
 
@@ -37,7 +37,7 @@ def read_raw_accel(addr):
 
     #concatenate higher and lower value
     value = ((high << 8) | low)
-    
+
     #to get signed value from mpu6050
     if(value > 32768):
             value = value - 65536
@@ -54,7 +54,7 @@ def setup_server():
     print("socket bind complete")
     return s
 
-# Set up transmission 
+# Set up transmission
 def set_up_connection():
     s.listen(1) # allows one connection at a time
     conn, address = s.accept()
@@ -123,4 +123,4 @@ while True:
         data_transfer()
     except:
         break
-    
+
