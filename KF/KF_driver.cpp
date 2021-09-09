@@ -1,3 +1,6 @@
+/* To compile, run:
+    g++-11 -I /usr/local/include/eigen3 KF.cpp KF_driver.cpp -o ../build/KF_driver
+*/
 #ifdef _WIN32
 #include <Windows.h>
 #else
