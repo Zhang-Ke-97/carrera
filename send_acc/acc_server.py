@@ -120,7 +120,7 @@ s = setup_server()
 while True:
     try:
         conn = set_up_connection()
-        data_transfer()
+        data_transfer(conn)
     except:
         break
 
