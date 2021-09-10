@@ -63,15 +63,16 @@ Matrix KF::get_error_covariance(){
 }
 
 void KF::info(){
+    Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); // set matrix print-layout
     std::string line_sep = "\n-------------------------------------\n";
     std::cout << "KF filter created:" << std::endl;
     std::cout << "\tx = Ax + Bu + w" << std::endl;
     std::cout << "\tz = Cx + v" << line_sep;
-    std::cout << "A=\n" << this->A << line_sep;
-    std::cout << "B=\n" << this->B << line_sep;
-    std::cout << "C=\n" << this->C << line_sep;
-    std::cout << "covariance of model noise w:\n" << this->Q << line_sep;
-    std::cout << "covariance of measurement noise v:\n" << this->R << line_sep;
+    std::cout << "A=\n" << this->A.format(fmt) << line_sep;
+    std::cout << "B=\n" << this->B.format(fmt) << line_sep;
+    std::cout << "C=\n" << this->C.format(fmt) << line_sep;
+    std::cout << "covariance of model noise w:\n" << this->Q.format(fmt) << line_sep;
+    std::cout << "covariance of measurement noise v:\n" << this->R.format(fmt) << line_sep;
 }
 
 KF::KF(){
