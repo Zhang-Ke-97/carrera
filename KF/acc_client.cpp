@@ -11,8 +11,12 @@ extern "C" {
 }
 
 #define DATA_PORT 5560
-#define IP_PI0 "172.20.10.100"
-#define IP_MACBOOK "192.168.1.102"
+#if defined(__APPLE__) && defined(__MACH__) // Test on macOS
+    #define IP_SERVER "192.168.1.102"
+#elif defined(__linux__)                    // Test on RPi
+    #define IP_SERVER "172.20.10.100"
+#endif
+
 
 int main(){
     // create socket 
@@ -22,11 +26,11 @@ int main(){
         exit(1);
     }
 
-    // set up server address we want to connect to
+    // set up server address (and the port number) we want to connect to
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(DATA_PORT);
-    inet_pton(AF_INET, IP_MACBOOK, &server_addr.sin_addr);
+    inet_pton(AF_INET, IP_SERVER, &server_addr.sin_addr);
 
     // connect to server
     if(connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr))<0){
@@ -34,13 +38,25 @@ int main(){
         exit(1);
     }
 
-    // receive acc data from server
+    // receive buffer of socket
     char recv_buffer[1024] = {0};
+    // command to be sent to server
     std::string command = "get seq";
+    
+    // store the acc data in double
+    double acc_x, acc_y, acc_z;
+    // TODO: set up Kalman Filter
+
+    // Big while-loop
     while (1){
+        // send the command and get reply from server
         send(socket_fd, command.c_str(), command.length(), 0);
         recv(socket_fd, recv_buffer, 1024, 0);
         std::cout << "Data received: " << recv_buffer << '\n';
+
+        // TODO: convert the received data into double
+
+        // TODO: send the acc into Kalman Filter
         usleep(0.1*1000*1000);
     }
     

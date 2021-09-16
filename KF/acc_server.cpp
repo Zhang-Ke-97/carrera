@@ -1,3 +1,4 @@
+// Registers of MPU6050
 #define PWR_MGMT_1    0x6B
 #define SMPLRT_DIV    0x19
 #define CONFIG        0x1A
@@ -9,18 +10,10 @@
 
 #define DATA_PORT 5560 // for socket
 
-#define DEBUG_RPI
 
 #include <iostream>
 #include <cstring> // memset
 #include <cstdlib> //exit
-
-////////////////////////////////////
-// for read_time() testing
-#include <sstream>
-#include <ctime>
-////////////////////////////////////
-
 extern "C" {
     #include <sys/socket.h> // socket
     #include <sys/types.h>
@@ -32,6 +25,7 @@ extern "C" {
 
 std::string read_acc();
 std::string read_seq();
+static void show_socket_info(struct sockaddr_in *s);
 
 int main(){
     // create socket
@@ -59,14 +53,16 @@ int main(){
         std::cout << "Socket created.\n" << "Binding compelte\n";
     }
     
-    #ifdef DEBUG_RPI
     // listen and accept
     listen(socket_fd, 1); // maximal pending connection =1
-    int addr_size = sizeof(pi0addr);
-    int conn_fd = accept(socket_fd, (struct sockaddr *)&pi0addr, (socklen_t*)&addr_size);
+    struct sockaddr_in client_addr;  
+    int addr_size = sizeof(client_addr);
+    int conn_fd = accept(socket_fd, (struct sockaddr *)&client_addr, (socklen_t*)&addr_size);
     if (conn_fd <0){
         std::cout << "accept() failed\n";
         std::exit(1);
+    }else{
+        show_socket_info(&client_addr);
     }
     
     // send acc data
@@ -90,7 +86,6 @@ int main(){
         
 
     } 
-    #endif
 
     return 0;
 }
@@ -113,4 +108,14 @@ std::string read_seq(){
     static int seq_counter = 0;
     std::string s = std::to_string(seq_counter++);
     return s;
+}
+
+static void show_socket_info(struct sockaddr_in *s) {
+    char ip[INET_ADDRSTRLEN];
+    uint16_t port;
+
+    inet_ntop(AF_INET, &(s->sin_addr), ip, INET_ADDRSTRLEN);
+    port = ntohs(s->sin_port);
+
+    std::cout << "IP: "<< ip << ", port: " << port << std::endl;
 }
