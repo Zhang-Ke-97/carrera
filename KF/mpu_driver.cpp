@@ -17,12 +17,17 @@ void config_mpu(int i2c_fd);
 void read_acc(int i2c_fd, double *Ax, double *Ay, double *Az);
 int read_reg(int i2c_fd, int reg);
 
-#include <linux/i2c-dev.h>
-#include <i2c/smbus.h>
+extern "C"{
+    #include <linux/i2c-dev.h>
+    #include <i2c/smbus.h>
+    #include <unistd.h>
+    #include <sys/ioctl.h>
+    #include <fcntl.h>
+}
+
 #include <cmath>
 // .cpp starts here
 #include <iostream>
-#include <unistd.h>
 
 int main(int argc, char const *argv[]){
     // open the i2c bus
