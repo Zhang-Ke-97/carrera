@@ -79,8 +79,8 @@ void config_mpu(int i2c_fd){
 }
 
 int read_reg(int i2c_fd, int reg){
-    int high = i2c_smbus_read_byte_data(i2c_fd, ACCEL_XOUT_H);
-    int low  = i2c_smbus_read_byte_data(i2c_fd, ACCEL_XOUT_H+1);
+    int high = i2c_smbus_read_byte_data(i2c_fd, reg);
+    int low  = i2c_smbus_read_byte_data(i2c_fd, reg+1);
 
     int value = (high<<8)|low;
     if (value > 32768){
