@@ -1,3 +1,9 @@
+/*  Before you complile, install the library:
+        sudo apt-get install libi2c-dev
+    To compile, run:
+        g++ mpu_driver.cpp -li2c 
+*/
+
 // Registers of MPU6050
 #define PWR_MGMT_1    0x6B
 #define SMPLRT_DIV    0x19
@@ -88,9 +94,9 @@ void read_acc(int i2c_fd, double *Ax, double *Ay, double *Az){
     int Ay_raw = read_reg(i2c_fd, ACCEL_YOUT_H);
     int Az_raw = read_reg(i2c_fd, ACCEL_ZOUT_H);
 
-    *Ax = std::round(Ax_raw/16384.0);
-    *Ay = std::round(Ay_raw/16384.0);
-    *Az = std::round(Az_raw/16384.0);    
+    *Ax = (Ax_raw/16384.0);
+    *Ay = (Ay_raw/16384.0);
+    *Az = (Az_raw/16384.0);    
 }
 
 
