@@ -41,7 +41,7 @@ int main(){
     // receive buffer of socket
     char recv_buffer[1024] = {0};
     // command to be sent to server
-    std::string command = "get seq";
+    std::string command = "get acc";
     
     // store the acc data in double
     double acc_x, acc_y, acc_z;
