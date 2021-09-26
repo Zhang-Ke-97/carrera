@@ -11,11 +11,7 @@ extern "C" {
 }
 
 #define DATA_PORT 5560
-#if defined(__APPLE__) && defined(__MACH__) // Test on macOS
-    #define IP_SERVER "192.168.1.102"
-#elif defined(__linux__)                    // Test on RPi
-    #define IP_SERVER "172.20.10.100"
-#endif
+#define IP_SERVER_PI "172.20.10.100"
 
 
 int main(){
@@ -30,8 +26,12 @@ int main(){
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(DATA_PORT);
-    inet_pton(AF_INET, IP_SERVER, &server_addr.sin_addr);
-
+    /*
+    if(inet_pton(AF_INET, IP_SERVER_PI, &server_addr.sin_addr)<=0){
+	std::cout << "Invalid server address\n";
+    }
+    */
+    server_addr.sin_addr.s_addr = inet_addr(IP_SERVER_PI);
     // connect to server
     if(connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr))<0){
         std::cout << "conncetion to server failed\n";
