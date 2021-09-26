@@ -1,15 +1,4 @@
-// Registers of MPU6050
-#define PWR_MGMT_1    0x6B
-#define SMPLRT_DIV    0x19
-#define CONFIG        0x1A
-#define ACCEL_CONFIG  0x1C
-#define INT_ENABLE    0x38
-#define ACCEL_XOUT_H  0x3B
-#define ACCEL_YOUT_H  0x3D 
-#define ACCEL_ZOUT_H  0x3F
-
 #define DATA_PORT 5560 // for socket
-
 
 #include <iostream>
 #include <cstring> // memset
@@ -39,10 +28,11 @@ int main(){
     struct sockaddr_in pi0addr;  
     pi0addr.sin_family = AF_INET;
     pi0addr.sin_port = htons(DATA_PORT);
+    // Use either pi0addr.sin_addr.s_addr = INADDR_ANY;
+    //         or inet_pton(AF_INET, "192.168.1.102.", &(pi0addr.sin_addr)); 
+    // to bind the socket to a specific IP 
     pi0addr.sin_addr.s_addr = INADDR_ANY;
-    // alternativ:
-    // inet_pton(AF_INET, "192.168.1.102.", &(pi0addr.sin_addr)); 
-    // The above syntax is used to bind the socket to a specific IP 
+    //////inet_pton(AF_INET, "192.168.0.10", &pi0addr.sin_addr);
     std::memset(pi0addr.sin_zero, 0, sizeof(pi0addr.sin_zero));
 
     // bind the socket to the address we specified
@@ -54,7 +44,7 @@ int main(){
     }
     
     // listen and accept
-    listen(socket_fd, 1); // maximal pending connection =1
+    listen(socket_fd, 3); // maximal pending connection =3
     struct sockaddr_in client_addr;  
     int addr_size = sizeof(client_addr);
     int conn_fd = accept(socket_fd, (struct sockaddr *)&client_addr, (socklen_t*)&addr_size);
