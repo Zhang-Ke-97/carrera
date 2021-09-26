@@ -1,7 +1,7 @@
 /*  Before you complile, install the library:
         sudo apt-get install libi2c-dev
     To compile, run:
-        g++ mpu_driver.cpp -li2c 
+        g++ mpu_driver.cpp mpu6050.cpp -li2c 
 */
 
 // .cpp starts here

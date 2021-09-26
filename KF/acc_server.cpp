@@ -1,3 +1,9 @@
+/*  Before you complile, install the library:
+        sudo apt-get install libi2c-dev
+    To compile, run:
+        g++ acc_server.cpp mpu6050.cpp -li2c 
+*/
+
 #define DATA_PORT 5560 // for socket
 
 #include "mpu6050.h"
