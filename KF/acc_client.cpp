@@ -15,7 +15,7 @@ extern "C" {
 }
 
 #define DATA_PORT 5560                   // for socket
-#define IP_SERVER_PI "172.20.10.100"     // for socket
+#define IP_SERVER_PI "192.168.1.200"     // for socket
 #define LENGTH(a) sizeof(a)/sizeof(a[0]) // easy to handle array length
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
 #define CARRERA_BAHN_LENGTH 1.8          // length of Carrera-Bahn (in m)
@@ -104,11 +104,8 @@ int main(){
     server_addr.sin_port = htons(DATA_PORT);
     // Use either server_addr.sin_addr.s_addr = inet_addr(IP_SERVER_PI);
     //         or inet_pton(AF_INET, IP_SERVER_PI, &server_addr.sin_addr); 
-    if(inet_pton(AF_INET, IP_SERVER_PI, &server_addr.sin_addr)<=0){
-	std::cout << "Invalid server address\n";
-    }
-
     server_addr.sin_addr.s_addr = inet_addr(IP_SERVER_PI);
+
     // connect to server
     if(connect(socket_fd, (struct sockaddr *)&server_addr, sizeof(server_addr))<0){
         std::cout << "conncetion to server failed\n";
