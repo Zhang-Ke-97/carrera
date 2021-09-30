@@ -4,6 +4,8 @@
 #include <cstring> // memset
 #include <cstdlib> //exit
 #include <ctime>
+#include <thread> 
+#include <mutex>
 #include "KF.h"
 extern "C" {
     #include <sys/socket.h> // socket
@@ -120,8 +122,9 @@ int main(){
     double acc_x, acc_y, acc_z;
 
     ///////////////////////////////// open csv file /////////////////////////////////
-    // std::ofstream training_data("train.csv");
-    // training_data << "accel x" << "accel y" << "accel z" << "velocity tg" << "mileage tg" << "motor input" << "\n";
+    std::ofstream training_data("train.csv");
+    training_data << "accel x" << "accel y" << "accel z" << "velocity tg" << "mileage tg" << "width PWM" << "\n";
+    training_data.close();
 
     ///////////////////////////////// Big while-loop /////////////////////////////////
     while (1){
