@@ -1,3 +1,6 @@
+/* To compile, run
+    g++ acc_client.cpp KF.cpp -o acc_client.cpp -I /usr/local/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
+*/
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -7,13 +10,15 @@
 #include <thread> 
 #include <mutex>
 #include "KF.h"
+#include "dashboard.h"
 extern "C" {
     #include <sys/socket.h> // socket
     #include <sys/types.h>
     #include <netdb.h>
     #include <arpa/inet.h>
     #include <netinet/in.h> // socketaddr_in
-    #include <unistd.h> // sleep
+    #include <unistd.h>     // sleep
+    #include <pigpio.h>     // GPIO Lib
 }
 
 #define DATA_PORT 5560                   // for socket
@@ -22,19 +27,22 @@ extern "C" {
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
 #define CARRERA_BAHN_LENGTH 1.8          // length of Carrera-Bahn (in m)
 #define GATE_DISTENCE 0.15               // distance between lasers (in m)
+#define GPIO_GATE_1 14                   // GPIO Pin for light sensor position 1
 
-// extract doubles from the string we received
+// true if car passing gate 1, false else. Shared by threads!
+bool signal_gate1 = false;
+// mutices to protect global variables shared by threads
+std::mutex signal_gate1_mutex;
+
+
+// Helper: extracts doubles from the string we received
 // s: the C string from which we would like to extract doubles
 // len: length of the C string s
 // x, y, z: extracted information will be stored in these vaiables 
 static void extract_acc_from_string(char* s, int len, double &x, double &y, double &z);
 
-// return the mileage of the car at the 1st laser gate
-// set the timer t_start for calculating velocity
-static double read_mileage(clock_t *t_start);
-
-// return velocity of the car at the 2nd laser gate
-static double read_velocity(clock_t t_start);
+// call back function associated with the thread which meusures the light at gate 1
+void gate1_callback();
 
 int main(){
     ///////////////////////////////// set up Kalman Filter /////////////////////////////////
@@ -65,7 +73,7 @@ int main(){
     }; 
     // measurement noise cov
     Matrix R {
-        {1.0, 0.0},
+        {0.1, 0.0},
         {0.0, 1.0}
     }; 
     // initial error cov
@@ -91,6 +99,17 @@ int main(){
     };
     
     KF kf = KF(A, B, C, Q, R, P, x, u, z);    
+
+    ///////////////////////////////// set up GPIO /////////////////////////////////
+    // Light sensor: output = 1 when dark  <=> car arrived
+    //                      = 0 when light <=> no car
+    // GPIO input: PULL_DOWN required
+    if (gpioInitialise()<0){
+        std::cout << "Failed to initialise GPIO\n";
+        exit(1);
+    }
+    gpioSetMode(GPIO_GATE_1, PI_INPUT);
+    gpioSetPullUpDown(GPIO_GATE_1, PI_PUD_DOWN); 
 
     ///////////////////////////////// set up socket /////////////////////////////////
     // create socket 
@@ -118,13 +137,17 @@ int main(){
     char recv_buffer[1024] = {0};
     // command to be sent to server, possible choices: "get acc", "get seq"
     std::string command = "get acc";
-    // store the acc data in double
-    double acc_x, acc_y, acc_z;
 
     ///////////////////////////////// open csv file /////////////////////////////////
     std::ofstream training_data("train.csv");
     training_data << "accel x" << "accel y" << "accel z" << "velocity tg" << "mileage tg" << "width PWM" << "\n";
     training_data.close();
+    
+    ///////////////////////////////// set up Dashboard ///////////////////////////////// 
+    Dashboard dsb;
+
+    ///////////////////////////////// start thread /////////////////////////////////
+    std::thread read_gate1(gate1_callback);
 
     ///////////////////////////////// Big while-loop /////////////////////////////////
     while (1){
@@ -133,24 +156,29 @@ int main(){
         recv(socket_fd, recv_buffer, 1024, 0);
 
         // extract acceleration (normalized to g) from recveive buffer
-        extract_acc_from_string(recv_buffer, LENGTH(recv_buffer), acc_x, acc_y, acc_z);
-        std::cout << "Received accel: " << "Ax=" << acc_x << "g, "
-                                        << "Ay=" << acc_y << "g, "
-                                        << "Az=" << acc_z << "g\n";
+        extract_acc_from_string(recv_buffer, LENGTH(recv_buffer), dsb.acc_x, dsb.acc_y, dsb.acc_z);
+        std::cout << "Received accel: " << "Ax=" << dsb.acc_x << "g, "
+                                        << "Ay=" << dsb.acc_y << "g, "
+                                        << "Az=" << dsb.acc_z << "g\n";
         // convert acceleration to N/kg
-        acc_x *= GRAVITY_STG;
-        acc_y *= GRAVITY_STG;
-        acc_z *= GRAVITY_STG;
+        dsb.acc_x *= GRAVITY_STG;
+        dsb.acc_y *= GRAVITY_STG;
+        dsb.acc_z *= GRAVITY_STG;
         
         // perform kalman filtering
         // kf.predict();
 
-        // Vector measurement {
-        //     {read_mileage()},
-        //     {read_velocity()}
-        // };
-        // kf.update(measurement);
-        
+        // check if car arrived at gate 1
+        {   
+            std::lock_guard<std::mutex> signal_guard(signal_gate1_mutex);
+            if(signal_gate1 == true){
+                dsb.cycle++;
+                dsb.set_t_gate1();
+                signal_gate1 = false;
+                std::cout << "car arrived at gate 1, " << "cycle=" << dsb.cycle << "\n";
+            }
+        } // mutices released here
+
         usleep(0.1*1000*1000);
     }
     
@@ -171,17 +199,14 @@ static void extract_acc_from_string(char* s, int len, double &x, double &y, doub
     ss >> z;
 }
 
-// return the mileage of the car at the 1st laser gate
-// set the timer t_start for calculating velocity
-static double read_mileage(clock_t *t_start){
-    static int cycles = 0; // Number of cycles
-    cycles ++;
-    *t_start = clock();
-    return cycles*CARRERA_BAHN_LENGTH;
-}
-
-// return velocity of the car at the 2nd laser gate
-static double read_velocity(clock_t t_start){
-    double duration_in_sec = double(clock ()-t_start)/CLOCKS_PER_SEC;
-    return GATE_DISTENCE/duration_in_sec;
+// call back function associated with the thread which meusures the light at gate 1
+void gate1_callback(){    
+    // Keep reading
+    while (1){
+        std::lock_guard<std::mutex> counter_guard(signal_gate1_mutex);
+        if (gpioRead(GPIO_GATE_1) == 1){ // laser is blocked by the car
+            signal_gate1 = true;
+            usleep(2*1000*1000); // avoid repeated "signal arrived"
+        }    
+    }
 }

@@ -1,4 +1,5 @@
 *.json
 *.o
 *.out
+*.csv
 /build
