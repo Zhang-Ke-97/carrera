@@ -2,7 +2,6 @@
 #define DASHBOARD_H
 
 #include <ctime>
-typedef unsigned long clock_t;
 
 struct Dashboard{
     // number of cycles the car has travled so far

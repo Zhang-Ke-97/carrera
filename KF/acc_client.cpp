@@ -200,13 +200,20 @@ static void extract_acc_from_string(char* s, int len, double &x, double &y, doub
 }
 
 // call back function associated with the thread which meusures the light at gate 1
-void gate1_callback(){    
+void gate1_callback(){   
+    bool cool_down = false; 
     // Keep reading
     while (1){
-        std::lock_guard<std::mutex> counter_guard(signal_gate1_mutex);
-        if (gpioRead(GPIO_GATE_1) == 1){ // laser is blocked by the car
-            signal_gate1 = true;
+        {
+            std::lock_guard<std::mutex> counter_guard(signal_gate1_mutex);
+            if (gpioRead(GPIO_GATE_1) == 1){ // laser is blocked by the car
+                signal_gate1 = true;
+                cool_down = true;
+            }
+        } // mutex released
+        if (cool_down){
             usleep(2*1000*1000); // avoid repeated "signal arrived"
-        }    
+            cool_down = false;
+        }
     }
 }
