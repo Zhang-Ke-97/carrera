@@ -7,8 +7,6 @@
 #include <cstring> // memset
 #include <cstdlib> //exit
 #include <ctime>
-#include <thread> 
-#include <mutex>
 #include "KF.h"
 #include "dashboard.h"
 extern "C" {
@@ -27,80 +25,81 @@ extern "C" {
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
 #define CARRERA_BAHN_LENGTH 1.8          // length of Carrera-Bahn (in m)
 #define GATE_DISTENCE 0.15               // distance between lasers (in m)
-#define GPIO_GATE_1 14                   // GPIO Pin for light sensor position 1
+#define GPIO_GATE_1 14                   // GPIO Pin for light sensor at position 1
+#define GPIO_GATE_2 15                   // GPIO Pin for light sensor at position 2
 
-// true if car passing gate 1, false else. Shared by threads!
-bool signal_gate1 = false;
-// mutices to protect global variables shared by threads
-std::mutex signal_gate1_mutex;
+// save accel, velo, etc in Dashboard
+Dashboard dsb;
 
-
-// Helper: extracts doubles from the string we received
-// s: the C string from which we would like to extract doubles
-// len: length of the C string s
-// x, y, z: extracted information will be stored in these vaiables 
+/* Helper: extracts doubles from the string we received
+    s: the C string from which we would like to extract doubles
+    len: length of the C string s
+    x, y, z: extracted information will be stored in these vaiables 
+*/
 static void extract_acc_from_string(char* s, int len, double &x, double &y, double &z);
 
-// call back function associated with the thread which meusures the light at gate 1
-void gate1_callback();
+/* ISR call back function associated gate 1 */
+void gate1_ISR_callback(int gpio, int level, uint32_t tick);
+
+/* ISR call back function associated gate 2 */
+void gate2_ISR_callback(int gpio, int level, uint32_t tick);
+
+// set up Kalman Filter
+const double T_sample = 0.1;    // sampling periode 
+ 
+Matrix A { // state transistion mtx
+    {1.0,  T_sample, T_sample*T_sample/2},
+    {0.0,  1.0,      T_sample}, 
+    {0.0,  0.0,      0.0}
+};
+
+Matrix B { // control input mtx
+    {0.0},
+    {0.0},
+    {1.0}
+};
+
+Matrix C { // measurement output mtx
+    {0.0, 1.0, 0.0},
+    {0.0, 0.0, 1.0}
+};
+
+Matrix Q { // model noise cov
+    {1.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 0.0, 1.0}
+}; 
+
+Matrix R { // measurement noise cov
+    {0.1, 0.0},
+    {0.0, 1.0}
+}; 
+
+Matrix P { // initial error cov
+    {1000.0,    0.0,      0.0},
+    {0.0,    1000.0,      0.0},
+    {0.0,       0.0,   1000.0}
+}; 
+
+Vector x { // initial state estimate
+    {0.0}, // mileage
+    {0.0}, // velo
+    {0.0}  // accel
+}; 
+
+Vector u { // control input
+    {0.0}
+}; 
+
+Vector z { // measurements
+    {0.0},
+    {0.0}
+};
+
+KF kf = KF(A, B, C, Q, R, P, x, u, z);    
 
 int main(){
-    ///////////////////////////////// set up Kalman Filter /////////////////////////////////
-    // sampling periode 
-    const double T_sample = 0.1;  
-    // state transistion mtx 
-    Matrix A {
-        {1.0,  T_sample, T_sample*T_sample/2},
-        {0.0,  1.0,      T_sample}, 
-        {0.0,  0.0,      0.0}
-    };
-    // control input mtx
-    Matrix B {
-        {0.0},
-        {0.0},
-        {1.0}
-    };
-    // measurement output mtx
-    Matrix C {
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0}
-    };
-   // model noise cov
-    Matrix Q {
-        {1.0, 0.0, 0.0},
-        {0.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0}
-    }; 
-    // measurement noise cov
-    Matrix R {
-        {0.1, 0.0},
-        {0.0, 1.0}
-    }; 
-    // initial error cov
-    Matrix P {
-        {1000.0,    0.0,      0.0},
-        {0.0,    1000.0,      0.0},
-        {0.0,       0.0,   1000.0}
-    }; 
-    // initial state estimate
-    Vector x {
-        {0.0},
-        {0.0},
-        {0.0}
-    }; 
-    // control input
-    Vector u {
-        {0.0}
-    }; 
-    // measurements
-    Vector z {
-        {0.0},
-        {0.0}
-    };
-    
-    KF kf = KF(A, B, C, Q, R, P, x, u, z);    
-
-    ///////////////////////////////// set up GPIO /////////////////////////////////
+    ///////////////////////////////// set up GPIO & interrupt /////////////////////////////////
     // Light sensor: output = 1 when dark  <=> car arrived
     //                      = 0 when light <=> no car
     // GPIO input: PULL_DOWN required
@@ -109,7 +108,13 @@ int main(){
         exit(1);
     }
     gpioSetMode(GPIO_GATE_1, PI_INPUT);
+    gpioSetMode(GPIO_GATE_2, PI_INPUT);
+
     gpioSetPullUpDown(GPIO_GATE_1, PI_PUD_DOWN); 
+    gpioSetPullUpDown(GPIO_GATE_2, PI_PUD_DOWN); 
+
+    gpioSetISRFunc(GPIO_GATE_1, RISING_EDGE, -1, gate1_ISR_callback);
+    gpioSetISRFunc(GPIO_GATE_2, RISING_EDGE, -1, gate2_ISR_callback);
 
     ///////////////////////////////// set up socket /////////////////////////////////
     // create socket 
@@ -142,12 +147,6 @@ int main(){
     std::ofstream training_data("train.csv");
     training_data << "accel x" << "accel y" << "accel z" << "velocity tg" << "mileage tg" << "width PWM" << "\n";
     training_data.close();
-    
-    ///////////////////////////////// set up Dashboard ///////////////////////////////// 
-    Dashboard dsb;
-
-    ///////////////////////////////// start thread /////////////////////////////////
-    std::thread read_gate1(gate1_callback);
 
     ///////////////////////////////// Big while-loop /////////////////////////////////
     while (1){
@@ -166,18 +165,7 @@ int main(){
         dsb.acc_z *= GRAVITY_STG;
         
         // perform kalman filtering
-        // kf.predict();
-
-        // check if car arrived at gate 1
-        {   
-            std::lock_guard<std::mutex> signal_guard(signal_gate1_mutex);
-            if(signal_gate1 == true){
-                dsb.cycle++;
-                dsb.set_t_gate1();
-                signal_gate1 = false;
-                std::cout << "car arrived at gate 1, " << "cycle=" << dsb.cycle << "\n";
-            }
-        } // mutices released here
+        kf.predict();
 
         usleep(0.1*1000*1000);
     }
@@ -199,21 +187,40 @@ static void extract_acc_from_string(char* s, int len, double &x, double &y, doub
     ss >> z;
 }
 
-// call back function associated with the thread which meusures the light at gate 1
-void gate1_callback(){   
-    bool cool_down = false; 
-    // Keep reading
-    while (1){
-        {
-            std::lock_guard<std::mutex> counter_guard(signal_gate1_mutex);
-            if (gpioRead(GPIO_GATE_1) == 1){ // laser is blocked by the car
-                signal_gate1 = true;
-                cool_down = true;
-            }
-        } // mutex released
-        if (cool_down){
-            usleep(2*1000*1000); // avoid repeated "signal arrived"
-            cool_down = false;
-        }
-    }
+// ISR call back function associated gate 1
+void gate1_ISR_callback(int gpio, int level, uint32_t tick){
+    // set timer and accumulate cycle
+    dsb.set_t_gate1();
+    dsb.cycle++;
+    std::cout << "\n" << "car arrived at gate 1, " << "cycle=" << dsb.cycle << "\n\n";
+}
+
+// ISR call back function associated gate 2
+void gate2_ISR_callback(int gpio, int level, uint32_t tick){
+    // set timer and compute velocity
+    dsb.set_t_gate2();
+    dsb.get_velocity(GATE_DISTENCE);
+
+    #ifndef ADD_KALMAN
+    std::cout << "\n" << "car arrived at gate 2, " 
+              << "delta_t=" << dsb.t_gate2 - dsb.t_gate1 << "\n\n";
+    #endif
+
+    #ifdef ADD_KALMAN
+    // kalman filter: update()
+    z << dsb.mileage + GATE_DISTENCE << dsb.velo << dsb.acc_y;
+    kf.update(z);
+
+    // save state estimate in vector x
+    x << kf.get_state_estimate(); 
+    // save features in .csv file
+    training_data << dsb.acc_x << "," << dsb.acc_y << "," << dsb.acc_z << "," 
+                  << x(1) << "," << x(0) << "," << "width PWM" << "\n";
+
+    // some outputs
+    Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); // set matrix print-layout
+    std::cout << "\n" << "car arrived at gate 2\n"
+    std::cout << "x_hat=\n" << x_hat.format(fmt) << "\n";
+    std::cout << "error covariance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
+    #endif
 }
