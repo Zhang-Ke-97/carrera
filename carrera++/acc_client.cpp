@@ -225,7 +225,7 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     // some outputs
     Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); // set matrix print-layout
     std::cout << "\n" << "car arrived at gate 2\n"
-    std::cout << "x_hat=\n" << x_hat.format(fmt) << "\n";
+    std::cout << "state estimate:\n" << x.format(fmt) << "\n";
     std::cout << "error covariance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
     #endif
 }
