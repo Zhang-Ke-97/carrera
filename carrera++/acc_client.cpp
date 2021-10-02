@@ -140,8 +140,11 @@ int main(){
 
     ///////////////////////////////// open csv file /////////////////////////////////
     std::ofstream training_data("train.csv");
-    training_data << "accel x" << "accel y" << "accel z" << "velocity tg" << "mileage tg" << "width PWM" << "\n";
+    training_data << "accel x" << "," << "accel y" << "," << "accel z" << "," 
+                  << "velocity tg" << "," << "mileage tg" << "," << "width PWM" << "\n";
+    #ifndef ADD_KALMAN
     training_data.close();
+    #endif
     
     ///////////////////////////////// set up Dashboard ///////////////////////////////// 
     Dashboard dsb;
@@ -165,8 +168,10 @@ int main(){
         dsb.acc_y *= GRAVITY_STG;
         dsb.acc_z *= GRAVITY_STG;
         
+        #ifdef ADD_KALMAN
         // perform kalman filtering
-        // kf.predict();
+        kf.predict();
+        #endif
 
         // check if car arrived at gate 1
         {   
