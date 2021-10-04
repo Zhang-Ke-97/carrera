@@ -33,6 +33,24 @@ extern "C" {
 // save accel, velo, etc in Dashboard
 Dashboard dsb;
 
+// sampling periode 
+const double T_sample = 0.1;    
+
+// open csv file
+std::ofstream training_data("train.csv");
+
+// Kalman Filter
+KF kf(3,3,1); // dim_x, dim_z, dim_u
+
+// saves prior/posterior state estimate
+Vector x(3);
+
+// saves measurements
+Vector z(3);
+
+// set matrix print-layout
+Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); 
+
 /* Helper: extracts doubles from the string we received
     s: the C string from which we would like to extract doubles
     len: length of the C string s
@@ -40,82 +58,27 @@ Dashboard dsb;
 */
 static void extract_acc_from_string(char* s, int len, double &x, double &y, double &z);
 
+
+/* Shows the features (accel, velo, etc.) */
+static void show_features(const char* s = "\0");
+ 
+ 
 /* ISR call back function associated gate 1 */
 void gate1_ISR_callback(int gpio, int level, uint32_t tick);
 
 /* ISR call back function associated gate 2 */
 void gate2_ISR_callback(int gpio, int level, uint32_t tick);
 
-// set up Kalman Filter
-const double T_sample = 0.1;    // sampling periode 
-
-// open csv file
-std::ofstream training_data("train.csv");
- 
-Matrix A { // state transistion mtx
-    {1.0,  T_sample, T_sample*T_sample/2},
-    {0.0,  1.0,      T_sample}, 
-    {0.0,  0.0,      0.0}
-};
-
-Matrix B { // control input mtx
-    {0.0},
-    {0.0},
-    {1.0}
-};
-
-Matrix C { // measurement output mtx
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0}
-};
-
-Matrix Q { // model noise cov
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0}
-}; 
-
-Matrix R { // measurement noise cov
-    {1.0, 0.0, 0.0},
-    {0.0, 1.0, 0.0},
-    {0.0, 0.0, 1.0}
-}; 
-
-Matrix P { // initial error cov
-    {1000.0,    0.0,      0.0},
-    {0.0,    1000.0,      0.0},
-    {0.0,       0.0,   1000.0}
-}; 
-
-Vector x { // initial state estimate
-    {0.0}, // mileage
-    {0.0}, // velo
-    {0.0}  // accel
-}; 
-
-Vector u { // control input
-    {0.0}
-}; 
-
-Vector z { // measurements
-    {0.0},
-    {0.0},
-    {0.0}
-};
-
-KF kf = KF(A, B, C, Q, R, P, x, u, z);    
-
 int main(){
-    ///////////////////////////////// set up Kalman Filter /////////////////////////////////
     // sampling periode 
     const double T_sample = 0.1;  
+
     // state transistion mtx 
     Matrix A(3,3);
     A << 1.0, T_sample, T_sample*T_sample/2,
          0.0,      1.0,            T_sample, 
          0.0,      0.0,                 0.0;
-    
+
     // control input mtx
     Matrix B(3,1);
     B << 0.0,
@@ -127,7 +90,7 @@ int main(){
     C << 1.0, 0.0, 0.0,
          0.0, 1.0, 0.0,
          0.0, 0.0, 1.0;
-    
+
     // model noise cov
     Matrix Q(3,3);
     Q << 1.0, 0.0, 0.0,
@@ -140,8 +103,7 @@ int main(){
          0.0, 1.0, 0.0,
          0.0, 0.0, 1.0;
     
-    // define Kalman Filter
-    KF kf = KF(3,3,1); // dim_x, dim_z, dim_u
+    // set up Kalman Filter
     kf.set_up_model(A, B, C);    
     kf.set_model_noise(Q);
     kf.set_measure_noise(R);
@@ -196,7 +158,7 @@ int main(){
     
     ///////////////////////////////// Big while-loop /////////////////////////////////
     while (1){
-        // send the command and get reply from server
+        // request accel data from server
         send(socket_fd, command.c_str(), command.length(), 0);
         recv(socket_fd, recv_buffer, 1024, 0);
 
@@ -217,11 +179,12 @@ int main(){
         // save prior state estimate in vector x
         x << kf.get_prio_state_estm(); 
         // save features in .csv file
-        training_data << dsb.acc_x << "," << dsb.acc_y << "," << dsb.acc_z << "," 
+        training_data << dsb.acc_x << "," << x(2) << "," << dsb.acc_z << "," 
                       << x(1) << "," << x(0) << "," << "width PWM" << "\n";
+        show_features("Predict: ");
         #endif
         
-        usleep(0.1*1000*1000);
+        usleep(T_sample*1000*1000);
     }
     
     return 0;
@@ -255,13 +218,6 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     dsb.set_t_gate2();
     dsb.get_velocity(GATE_DISTENCE);
 
-    std::cout << "\n" << "car arrived at gate 2, " 
-              << "delta_t=" << dsb.t_gate2 - dsb.t_gate1 << "\n\n";
-
-    
-    std::cout << -1 << ", " << "posterior estimate" << "\n";
-
-
     #ifdef ADD_KALMAN
     // kalman filter: update()
     z << dsb.mileage + GATE_DISTENCE, dsb.velo, dsb.acc_y;
@@ -274,9 +230,19 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
                   << x(1) << "," << x(0) << "," << "width PWM" << "\n";
 
     // some outputs
-    Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); // set matrix print-layout
-    std::cout << "\n" << "car arrived at gate 2\n";
-    std::cout << "state estimate:\n" << x.format(fmt) << "\n";
-    std::cout << "error covariance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
+    std::cout << "\n" << "car arrived at gate 2, " 
+              << "delta_t=" << dsb.t_gate2 - dsb.t_gate1 << "\n";
+    show_features("Update: ");
     #endif
+}
+
+
+static void show_features(const char* s /* ="\0" */){
+   std::cout << s
+             << "Ax=" << dsb.acc_x << "m/s^2, "
+             << "Ay=" << x(2) << "m/s^2, " 
+             << "Az=" << dsb.acc_z << "m/s^2," 
+             << "Vy=" << x(1) << "m/s," 
+             << "Sy=" << x(0) << "m," 
+             << "width PWM" << "\n";
 }
