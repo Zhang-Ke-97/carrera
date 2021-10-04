@@ -31,6 +31,7 @@ public:
     KF();
     KF(int dim_x, int dim_z, int dim_u);
     ~KF();
+    void set_up_model(Matrix A, Matrix B, Matrix C);
     void predict(Vector u_fresh); // predict with control input
     void predict(); // predict without control input
     void update(Vector z_fresh);
