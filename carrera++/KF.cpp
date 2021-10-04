@@ -78,17 +78,17 @@ void KF::info(){
 
 void KF::set_measure_noise(Matrix R_new){
     if(this->R.rows()==R_new.rows() && this->R.cols()==R_new.cols()){
-        this->R = R_new;
+        this->R << R_new;
     }else{
-        std::cout << "The size of meausurement noise cov doesn't match!\n";
+        std::cout << "Warning: The size of meausurement noise cov doesn't match!\n";
     }
 }
 
 void KF::set_model_noise(Matrix Q_new){
     if(this->Q.rows()==Q_new.rows() && this->Q.cols()==Q_new.cols()){
-        this->Q = Q_new;
+        this->Q << Q_new;
     }else{
-        std::cout << "The size of meausurement noise cov doesn't match!\n";
+        std::cout << "Warning: The size of model noise cov doesn't match!\n";
     }
 }
 
