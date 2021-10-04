@@ -9,8 +9,6 @@ A(A), B(B), C(C), Q(Q), R(R), P_post(P), x_post(x), z(z), u(u){
     x_prio = Vector::Zero(dim_x, 1);
     S = Matrix::Zero(dim_z, dim_z);
     K = Matrix::Zero(dim_x, dim_z);
-
-    this->info();
 }
 
 KF::KF(int dim_x, int dim_z, int dim_u){
@@ -18,11 +16,12 @@ KF::KF(int dim_x, int dim_z, int dim_u){
     B = Matrix::Zero(dim_x, dim_u);
     C = Matrix::Zero(dim_z, dim_x);
 
-    Q = Matrix::Zero(dim_x, dim_x);
-    R = Matrix::Zero(dim_z, dim_z);
+    Q = Matrix::Identity(dim_x, dim_x);
+    R = Matrix::Identity(dim_z, dim_z);
 
-    P_prio = Matrix::Zero(dim_x, dim_x);
-    P_post = Matrix::Zero(dim_x, dim_x);
+    P_prio = 1000*Matrix::Identity(dim_x, dim_x);
+    P_post = 1000*Matrix::Identity(dim_x, dim_x);
+    
     x_prio = Vector::Zero(dim_x, 1);
     x_post = Vector::Zero(dim_x, 1);
 
@@ -31,8 +30,6 @@ KF::KF(int dim_x, int dim_z, int dim_u){
 
     S = Matrix::Zero(dim_z, dim_z);
     K = Matrix::Zero(dim_x, dim_z);
-
-    this->info();
 }
 
 void KF::predict(Vector u_fresh){
@@ -93,6 +90,13 @@ void KF::set_model_noise(Matrix Q_new){
     }else{
         std::cout << "The size of meausurement noise cov doesn't match!\n";
     }
+}
+
+
+void KF::set_up_model(Matrix A, Matrix B, Matrix C){
+    this->A << A;
+    this->B << B;
+    this->C << C;
 }
 
 KF::KF(){
