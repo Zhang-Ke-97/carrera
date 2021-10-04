@@ -35,8 +35,11 @@ public:
     void predict(); // predict without control input
     void update(Vector z_fresh);
     void info();
-    Vector get_state_estimate();
+    Vector get_prio_state_estm();
+    Vector get_post_state_estm();
     Matrix get_error_covariance();
+    void set_measure_noise(Matrix R_new);
+    void set_model_noise(Matrix Q_new);
 };
 
 #endif

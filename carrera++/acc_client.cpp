@@ -28,6 +28,8 @@ extern "C" {
 #define GPIO_GATE_1 14                   // GPIO Pin for light sensor at position 1
 #define GPIO_GATE_2 15                   // GPIO Pin for light sensor at position 2
 
+#define DUMMY_WRITE //test write file
+
 // save accel, velo, etc in Dashboard
 Dashboard dsb;
 
@@ -60,6 +62,7 @@ Matrix B { // control input mtx
 };
 
 Matrix C { // measurement output mtx
+    {1.0, 0.0, 0.0},
     {0.0, 1.0, 0.0},
     {0.0, 0.0, 1.0}
 };
@@ -71,8 +74,9 @@ Matrix Q { // model noise cov
 }; 
 
 Matrix R { // measurement noise cov
-    {0.1, 0.0},
-    {0.0, 1.0}
+    {1.0, 0.0, 0.0},
+    {0.0, 1.0, 0.0},
+    {0.0, 0.0, 1.0}
 }; 
 
 Matrix P { // initial error cov
@@ -92,6 +96,7 @@ Vector u { // control input
 }; 
 
 Vector z { // measurements
+    {0.0},
     {0.0},
     {0.0}
 };
@@ -151,6 +156,10 @@ int main(){
     training_data.close();
     #endif
 
+    #ifdef DUMMY_WRITE
+    int dummy_w = 1;
+    #endif
+
     ///////////////////////////////// Big while-loop /////////////////////////////////
     while (1){
         // send the command and get reply from server
@@ -170,7 +179,18 @@ int main(){
         #ifdef ADD_KALMAN
         // perform kalman filtering
         kf.predict();
+
+        // save prior state estimate in vector x
+        x << kf.get_prio_state_estm(); 
+        // save features in .csv file
+        training_data << dsb.acc_x << "," << dsb.acc_y << "," << dsb.acc_z << "," 
+                      << x(1) << "," << x(0) << "," << "width PWM" << "\n";
         #endif
+
+        #ifdef DUMMY_WRITE
+        std::cout << dummy_w << ", " << "prior estimate" << "\n";
+        #endif
+        
         
         usleep(0.1*1000*1000);
     }
@@ -206,9 +226,11 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     dsb.set_t_gate2();
     dsb.get_velocity(GATE_DISTENCE);
 
-    #ifndef ADD_KALMAN
     std::cout << "\n" << "car arrived at gate 2, " 
               << "delta_t=" << dsb.t_gate2 - dsb.t_gate1 << "\n\n";
+
+    #ifdef DUMMY_WRITE
+    std::cout << -1 << ", " << "posterior estimate" << "\n";
     #endif
 
     #ifdef ADD_KALMAN
@@ -216,8 +238,8 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     z << dsb.mileage + GATE_DISTENCE << dsb.velo << dsb.acc_y;
     kf.update(z);
 
-    // save state estimate in vector x
-    x << kf.get_state_estimate(); 
+    // save posterior state estimate in vector x
+    x << kf.get_post_state_estm(); 
     // save features in .csv file
     training_data << dsb.acc_x << "," << dsb.acc_y << "," << dsb.acc_z << "," 
                   << x(1) << "," << x(0) << "," << "width PWM" << "\n";
