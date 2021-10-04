@@ -54,7 +54,11 @@ void KF::update(Vector z_fresh){
     P_post = P_prio - K * S * K.transpose();
 }
 
-Vector KF::get_state_estimate(){
+Vector KF::get_prio_state_estm(){
+    return this->x_prio;
+}
+
+Vector KF::get_post_state_estm(){
     return this->x_post;
 }
 
@@ -73,6 +77,22 @@ void KF::info(){
     std::cout << "C=\n" << this->C.format(fmt) << line_sep;
     std::cout << "covariance of model noise w:\n" << this->Q.format(fmt) << line_sep;
     std::cout << "covariance of measurement noise v:\n" << this->R.format(fmt) << line_sep;
+}
+
+void KF::set_measure_noise(Matrix R_new){
+    if(this->R.rows()==R_new.rows() && this->R.cols()==R_new.cols()){
+        this->R = R_new;
+    }else{
+        std::cout << "The size of meausurement noise cov doesn't match!\n";
+    }
+}
+
+void KF::set_model_noise(Matrix Q_new){
+    if(this->Q.rows()==Q_new.rows() && this->Q.cols()==Q_new.cols()){
+        this->Q = Q_new;
+    }else{
+        std::cout << "The size of meausurement noise cov doesn't match!\n";
+    }
 }
 
 KF::KF(){
