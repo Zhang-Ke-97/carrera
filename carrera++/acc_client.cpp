@@ -104,7 +104,46 @@ Vector z { // measurements
 KF kf = KF(A, B, C, Q, R, P, x, u, z);    
 
 int main(){
-    ///////////////////////////////// set up GPIO & interrupt /////////////////////////////////
+    ///////////////////////////////// set up Kalman Filter /////////////////////////////////
+    // sampling periode 
+    const double T_sample = 0.1;  
+    // state transistion mtx 
+    Matrix A(3,3);
+    A << 1.0, T_sample, T_sample*T_sample/2,
+         0.0,      1.0,            T_sample, 
+         0.0,      0.0,                 0.0;
+    
+    // control input mtx
+    Matrix B(3,1);
+    B << 0.0,
+         0.0,
+         1.0;
+         
+    // measurement output mtx
+    Matrix C(3,3);
+    C << 1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0;
+    
+    // model noise cov
+    Matrix Q(3,3);
+    Q << 1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0;
+
+    // measurement noise cov
+    Matrix R(3,3);
+    R << 1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0;
+    
+    // define Kalman Filter
+    KF kf = KF(3,3,1); // dim_x, dim_z, dim_u
+    kf.set_up_model(A, B, C);    
+    kf.set_model_noise(Q);
+    kf.set_measure_noise(R);
+
+    ///////////////////////////////// set up GPIO /////////////////////////////////
     // Light sensor: output = 1 when dark  <=> car arrived
     //                      = 0 when light <=> no car
     // GPIO input: PULL_DOWN required

@@ -32,6 +32,8 @@ public:
     KF(int dim_x, int dim_z, int dim_u);
     ~KF();
     void set_up_model(Matrix A, Matrix B, Matrix C);
+    void set_measure_noise(Matrix R_new);
+    void set_model_noise(Matrix Q_new);    
     void predict(Vector u_fresh); // predict with control input
     void predict(); // predict without control input
     void update(Vector z_fresh);
@@ -39,8 +41,6 @@ public:
     Vector get_prio_state_estm();
     Vector get_post_state_estm();
     Matrix get_error_covariance();
-    void set_measure_noise(Matrix R_new);
-    void set_model_noise(Matrix Q_new);
 };
 
 #endif
