@@ -1,5 +1,5 @@
 /* To compile, run
-    g++ acc_client.cpp KF.cpp -o acc_client.cpp -I /usr/local/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
+    g++ acc_client.cpp KF.cpp -o ../build/acc_client -I /usr/local/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
 */
 #include <iostream>
 #include <sstream>
@@ -28,7 +28,7 @@ extern "C" {
 #define GPIO_GATE_1 14                   // GPIO Pin for light sensor at position 1
 #define GPIO_GATE_2 15                   // GPIO Pin for light sensor at position 2
 
-#define DUMMY_WRITE //test write file
+#define ADD_KALMAN
 
 // save accel, velo, etc in Dashboard
 Dashboard dsb;
@@ -48,6 +48,9 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick);
 
 // set up Kalman Filter
 const double T_sample = 0.1;    // sampling periode 
+
+// open csv file
+std::ofstream training_data("train.csv");
  
 Matrix A { // state transistion mtx
     {1.0,  T_sample, T_sample*T_sample/2},
@@ -104,6 +107,10 @@ Vector z { // measurements
 KF kf = KF(A, B, C, Q, R, P, x, u, z);    
 
 int main(){
+    ///////////////////////////////// write header in .csv file /////////////////////////////////    
+    training_data << "accel x" << "," << "accel y" << "," << "accel z" << "," 
+              << "velocity tg" << "," << "mileage tg" << "," << "width PWM" << "\n";
+
     ///////////////////////////////// set up GPIO & interrupt /////////////////////////////////
     // Light sensor: output = 1 when dark  <=> car arrived
     //                      = 0 when light <=> no car
@@ -148,18 +155,10 @@ int main(){
     // command to be sent to server, possible choices: "get acc", "get seq"
     std::string command = "get acc";
 
-    ///////////////////////////////// open csv file /////////////////////////////////
-    std::ofstream training_data("train.csv");
-    training_data << "accel x" << "," << "accel y" << "," << "accel z" << "," 
-                  << "velocity tg" << "," << "mileage tg" << "," << "width PWM" << "\n";
     #ifndef ADD_KALMAN
     training_data.close();
     #endif
-
-    #ifdef DUMMY_WRITE
-    int dummy_w = 1;
-    #endif
-
+    
     ///////////////////////////////// Big while-loop /////////////////////////////////
     while (1){
         // send the command and get reply from server
@@ -186,11 +185,6 @@ int main(){
         training_data << dsb.acc_x << "," << dsb.acc_y << "," << dsb.acc_z << "," 
                       << x(1) << "," << x(0) << "," << "width PWM" << "\n";
         #endif
-
-        #ifdef DUMMY_WRITE
-        std::cout << dummy_w << ", " << "prior estimate" << "\n";
-        #endif
-        
         
         usleep(0.1*1000*1000);
     }
@@ -229,13 +223,13 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     std::cout << "\n" << "car arrived at gate 2, " 
               << "delta_t=" << dsb.t_gate2 - dsb.t_gate1 << "\n\n";
 
-    #ifdef DUMMY_WRITE
+    
     std::cout << -1 << ", " << "posterior estimate" << "\n";
-    #endif
+
 
     #ifdef ADD_KALMAN
     // kalman filter: update()
-    z << dsb.mileage + GATE_DISTENCE << dsb.velo << dsb.acc_y;
+    z << dsb.mileage + GATE_DISTENCE, dsb.velo, dsb.acc_y;
     kf.update(z);
 
     // save posterior state estimate in vector x
@@ -246,7 +240,7 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
 
     // some outputs
     Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); // set matrix print-layout
-    std::cout << "\n" << "car arrived at gate 2\n"
+    std::cout << "\n" << "car arrived at gate 2\n";
     std::cout << "state estimate:\n" << x.format(fmt) << "\n";
     std::cout << "error covariance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
     #endif
