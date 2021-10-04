@@ -1,5 +1,5 @@
 /* To compile, run:
-    g++-11 -I /usr/local/include/eigen3 KF.cpp KF_driver.cpp -o ../build/KF_driver
+    g++-11 -I /usr/local/include/eigen3 KF.cpp KF2_driver.cpp -o ../build/KF2_driver
 */
 
 /* Test file: 1D movement with const velocity
@@ -21,56 +21,40 @@
 // read the current mileage
 static double read_position(int t_step); 
 
+// velocity of the object
+double velocity = 5;
+
 // sampling periode 
 const double T_sample = 0.1;
 
-int main(){
-    Matrix A {
-        {1.0, T_sample},
-        {0.0, 1.0}
-    };
-    Matrix B {
-        {0.0},
-        {0.0}
-    };
-    Matrix C {
-        {1.0, 0.0}
-    };
-   // model noise cov
-    Matrix Q {
-        {1.0, 0.0},
-        {0.0, 1.0}
-    }; 
-    // measurement noise cov
-    Matrix R {
-        {0.01}
-    }; 
-    // initial error cov
-    Matrix P {
-        {1000.0,    0.0},
-        {0.0,    1000.0}
-    }; 
-    // initial state estimate
-    Vector x {
-        {0.0},
-        {0.0}
-    }; 
-    Vector u {
-        {0.0}
-    }; 
-    Vector z {
-        {0.0}
-    };
+// set matrix print-layout
+Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); 
 
-    KF kf = KF(A, B, C, Q, R, P, x, u, z);
+int main(){
+    // set up matrices
+    Matrix A(2,2);
+    A << 1.0, T_sample,
+         0.0,  1.0; 
+
+    Matrix B(2,1);
+
+    B << 0.0, 
+         0.0;
+    Matrix C(1,2);
+
+    C << 1.0, 0.0;
     
-    // set matrix print-layout
-    Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); 
+    // define kalman filter
+    KF kf = KF(2,1,1);
+    kf.set_up_model(A, B, C);
     
-    std::cout << "start kalman filering...\n";
-    std::cout << "estimate:\n" << kf.get_state_estimate().format(fmt) << "\n";
-    std::cout << "error variance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
+    // show info
+    std::cout << "Kalman Filter tracking an object with constant velocity of " << velocity << "\n";
+    std::cout << "initial estimate:\n" << kf.get_post_state_estm().format(fmt) << "\n";
+    std::cout << "initial error covariance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
+    kf.info();
     
+    // start filtering
     for (int i = 0; i < 21; i++){   
         kf.predict();
         Vector measurement {{read_position(i)}};
@@ -78,7 +62,7 @@ int main(){
         
         std::cout << "t=" << i*T_sample << "\n";
         std::cout << "measured:\n" << measurement.format(fmt) << "\n";
-        std::cout << "estimate:\n" << kf.get_state_estimate().format(fmt) << "\n";
+        std::cout << "estimate:\n" << kf.get_post_state_estm().format(fmt) << "\n";
         std::cout << "error variance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
         sleep(1);
     }   
@@ -87,7 +71,6 @@ int main(){
 
 
 static double read_position(int t_step){
-    double velocity = 5;
     double position_init = 10;
     // set up gaussian noise generator
     double mean = 0.0;
