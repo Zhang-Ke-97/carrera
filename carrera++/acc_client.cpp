@@ -29,6 +29,7 @@ extern "C" {
 #define GPIO_GATE_2 15                   // GPIO Pin for light sensor at position 2
 
 #define ADD_KALMAN
+// #define WRITE_FEATURES
 
 // save accel, velo, etc in Dashboard
 Dashboard dsb;
@@ -152,7 +153,7 @@ int main(){
     // command to be sent to server, possible choices: "get acc", "get seq"
     std::string command = "get acc";
 
-    #ifndef ADD_KALMAN
+    #ifndef WRITE_FEATURES
     training_data.close();
     #endif
     
@@ -172,18 +173,18 @@ int main(){
         dsb.acc_y *= GRAVITY_STG;
         dsb.acc_z *= GRAVITY_STG;
         
-        #ifdef ADD_KALMAN
         // perform kalman filtering
         kf.predict();
 
         // save prior state estimate in vector x
         x << kf.get_prio_state_estm(); 
+
+        #ifdef WRITE_FEATURES
         // save features in .csv file
         training_data << dsb.acc_x << "," << x(2) << "," << dsb.acc_z << "," 
                       << x(1) << "," << x(0) << "," << "width PWM" << "\n";
-        show_features("Predict: ");
         #endif
-        
+        show_features("Predict: ");
         usleep(T_sample*1000*1000);
     }
     
@@ -220,14 +221,17 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
 
     #ifdef ADD_KALMAN
     // kalman filter: update()
-    z << dsb.mileage + GATE_DISTENCE, dsb.velo, dsb.acc_y;
+    z << dsb.mileage + GATE_DISTENCE, dsb.velo, dsb.acc_z;
     kf.update(z);
 
     // save posterior state estimate in vector x
     x << kf.get_post_state_estm(); 
+    
+    #ifdef WRITE_FEATURES
     // save features in .csv file
     training_data << dsb.acc_x << "," << dsb.acc_y << "," << dsb.acc_z << "," 
                   << x(1) << "," << x(0) << "," << "width PWM" << "\n";
+    #endif
 
     // some outputs
     std::cout << "\n" << "car arrived at gate 2, " 
