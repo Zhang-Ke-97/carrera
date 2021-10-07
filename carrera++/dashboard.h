@@ -5,7 +5,7 @@
 
 struct Dashboard{
     // number of cycles the car has travled so far
-    int cycle = 0;
+    int cycle = -1;
 
     // mileage of the car
     double mileage = 0.0;
