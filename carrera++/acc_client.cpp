@@ -23,8 +23,8 @@ extern "C" {
 #define IP_SERVER_PI "192.168.1.200"     // for socket
 #define LENGTH(a) sizeof(a)/sizeof(a[0]) // easy to handle array length
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
-#define CARRERA_BAHN_LENGTH 1.8          // length of Carrera-Bahn (in m)
-#define GATE_DISTENCE 0.15               // distance between lasers (in m)
+#define CARRERA_BAHN_LENGTH 4.583        // length of Carrera-Bahn (in m)
+#define GATE_DISTENCE 0.06               // distance between lasers (in m)
 #define GPIO_GATE_1 14                   // GPIO Pin for light sensor at position 1
 #define GPIO_GATE_2 15                   // GPIO Pin for light sensor at position 2
 
@@ -44,10 +44,10 @@ std::ofstream training_data("train.csv");
 KF kf(3,3,1); // dim_x, dim_z, dim_u
 
 // saves prior/posterior state estimate
-Vector x(3);
+Vector state_tg(3);
 
 // saves measurements
-Vector z(3);
+Vector measm(3);
 
 // set matrix print-layout
 Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); 
@@ -59,8 +59,10 @@ Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]");
 */
 static void extract_acc_from_string(char* s, int len, double &x, double &y, double &z);
 
+/* Write features in .csv file (accel, velo, etc.) */
+static void save_features(std::ofstream output_file);
 
-/* Shows the features (accel, velo, etc.) */
+/* Shows the features to console (accel, velo, etc.) */
 static void show_features(const char* s = "\0");
  
  
@@ -103,6 +105,10 @@ int main(){
     R << 1.0, 0.0, 0.0,
          0.0, 1.0, 0.0,
          0.0, 0.0, 1.0;
+    
+    // control input: accel in z-direction
+    Matrix Acc_tg(1,1);
+    Acc_tg << 0;
     
     // set up Kalman Filter
     kf.set_up_model(A, B, C);    
@@ -174,15 +180,15 @@ int main(){
         dsb.acc_z *= GRAVITY_STG;
         
         // perform kalman filtering
-        kf.predict();
+        Acc_tg << dsb.acc_z;
+        kf.predict(Acc_tg);
 
         // save prior state estimate in vector x
-        x << kf.get_prio_state_estm(); 
+        state_tg << kf.get_prio_state_estm(); 
 
         #ifdef WRITE_FEATURES
         // save features in .csv file
-        training_data << dsb.acc_x << "," << x(2) << "," << dsb.acc_z << "," 
-                      << x(1) << "," << x(0) << "," << "width PWM" << "\n";
+        save_features(training_data);
         #endif
         show_features("Predict: ");
         usleep(T_sample*1000*1000);
@@ -221,16 +227,15 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
 
     #ifdef ADD_KALMAN
     // kalman filter: update()
-    z << dsb.mileage + GATE_DISTENCE, dsb.velo, dsb.acc_z;
-    kf.update(z);
+    measm << dsb.mileage + GATE_DISTENCE, dsb.velo, dsb.acc_z;
+    kf.update(measm);
 
     // save posterior state estimate in vector x
-    x << kf.get_post_state_estm(); 
+    state_tg << kf.get_post_state_estm(); 
     
     #ifdef WRITE_FEATURES
     // save features in .csv file
-    training_data << dsb.acc_x << "," << dsb.acc_y << "," << dsb.acc_z << "," 
-                  << x(1) << "," << x(0) << "," << "width PWM" << "\n";
+    save_features(training_data);
     #endif
 
     // some outputs
@@ -244,9 +249,14 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
 static void show_features(const char* s /* ="\0" */){
    std::cout << s
              << "Ax=" << dsb.acc_x << "m/s^2, "
-             << "Ay=" << x(2) << "m/s^2, " 
-             << "Az=" << dsb.acc_z << "m/s^2," 
-             << "Vy=" << x(1) << "m/s," 
-             << "Sy=" << x(0) << "m," 
+             << "Ay=" << dsb.acc_y << "m/s^2, " 
+             << "Az=" << state_tg(2) << "m/s^2," 
+             << "Vy=" << state_tg(1) << "m/s," 
+             << "Sy=" << state_tg(0) << "m," 
              << "width PWM" << "\n";
+}
+
+static void save_features(std::ofstream output_file){
+    output_file << dsb.acc_x << "," << dsb.acc_y << "," << state_tg(2) << "," 
+                  << state_tg(1) << "," << state_tg(0) << "," << "width PWM" << "\n";
 }
