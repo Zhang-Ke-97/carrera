@@ -32,7 +32,7 @@ void config_mpu(int i2c_fd);
 void read_acc(int i2c_fd, double *Ax, double *Ay, double *Az);
 
 // read register 'reg' and return raw value
-int read_reg(int i2c_fd, int reg);
+short read_reg(int i2c_fd, int reg);
 
 #endif
 
