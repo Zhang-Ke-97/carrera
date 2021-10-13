@@ -213,6 +213,10 @@ static void extract_acc_from_string(char* s, int len, double &x, double &y, doub
 
 // ISR call back function associated gate 1
 void gate1_ISR_callback(int gpio, int level, uint32_t tick){
+    // check if the car really arrived at gate 1
+    if(clock()-dsb.t_gate1 < 3*CLOCKS_PER_SEC){
+    	return;
+    }
     // set timer and accumulate cycle
     dsb.set_t_gate1();
     dsb.cycle++;
@@ -221,6 +225,10 @@ void gate1_ISR_callback(int gpio, int level, uint32_t tick){
 
 // ISR call back function associated gate 2
 void gate2_ISR_callback(int gpio, int level, uint32_t tick){
+    // check if the car really arrived at gate 2
+    if(clock()-dsb.t_gate2 < 3*CLOCKS_PER_SEC){
+    	return;
+    }
     // set timer and compute velocity
     dsb.set_t_gate2();
     dsb.get_velocity(GATE_DISTENCE);
@@ -250,9 +258,9 @@ static void show_features(const char* s /* ="\0" */){
    std::cout << s
              << "Ax=" << dsb.acc_x << "m/s^2, "
              << "Ay=" << dsb.acc_y << "m/s^2, " 
-             << "Az=" << state_tg(2) << "m/s^2," 
-             << "Vy=" << state_tg(1) << "m/s," 
-             << "Sy=" << state_tg(0) << "m," 
+             << "Az=" << dsb.acc_z << "m/s^2," 
+             << "Vz" << state_tg(1) << "m/s," 
+             << "Sz=" << state_tg(0) << "m," 
              << "width PWM" << "\n";
 }
 
