@@ -22,17 +22,28 @@ extern "C"{
     #include <fcntl.h>
 }
 
-// Functions
-// int init_i2c_bus(int adapter_nr, int device_addr);
+class MPU6050{
+private:
+    int i2c_fd = MPU6050_ADDR;
+    int adapter_nr;
+public:
+    MPU6050(int adp = 1);
+    ~MPU6050();
+    
+    // set up i2c bus and link it to MPU6050
+    // returns true if successful, false otherwise
+    bool init();
+    
+    // Configure MPU6050: power, precesions, ...
+    void config();
+    
+    // read register 'reg' and return raw value
+    short read_reg(int reg);
+    
+    // read acceleration data and save into Ax, Ay, Az
+    void read_acc(double* Ax, double *Ay, double *Az);
+};
 
-// Configure MPU6050: power, precesions, ...
-void config_mpu(int i2c_fd);
-
-// read acceleration data and save into Ax, Ay, Az
-void read_acc(int i2c_fd, double *Ax, double *Ay, double *Az);
-
-// read register 'reg' and return raw value
-short read_reg(int i2c_fd, int reg);
 
 #endif
 

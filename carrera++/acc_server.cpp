@@ -24,27 +24,13 @@ std::string read_seq();
 static void show_socket_info(struct sockaddr_in *s);
 
 int main(){
-    ////////////////////////////// set up i2c bus //////////////////////////////
-    // open the i2c bus
-    int i2c_fd;
-    int adapter_nr = 1; // inspect /sys/class/i2c-dev/ or run "i2cdetect -l"
-    char i2c_path[20];
-    std::snprintf(i2c_path, 19, "/dev/i2c-%d", adapter_nr);
-
-    i2c_fd = open(i2c_path, O_RDWR);
-    if (i2c_fd < 0) {
-        std::cout << "Can not open " << i2c_path << "\n";
+    ////////////////////////////// set up MPU6050 //////////////////////////////
+    MPU6050 mpu;
+    if(!mpu.init()){
+        std::cout << "Failed to initiate MPU6050\n";
         exit(1);
     }
-
-    // link the i2c file descriptor to MPU6050
-    if (ioctl(i2c_fd, I2C_SLAVE, MPU6050_ADDR) < 0) {
-        std::cout << "Unable to link to " << MPU6050_ADDR << "\n";
-        exit(1);
-    }
-
-    // configure registers in MPU6050 
-    config_mpu(i2c_fd);
+    mpu.config();
 
     ////////////////////////////// set up socket //////////////////////////////
     // create socket
