@@ -45,7 +45,9 @@ void KF::predict(){
 
 void KF::update(Vector z_fresh){
     this->z = z_fresh;
-    S = C * P_prio * C.transpose() + R;
+    // make sure that S is always invertiable
+    S = C * P_prio * C.transpose() + R + FACTOR_MICRO*Matrix::Identity(z.rows(), z.cols());
+    
     K = P_prio * C.transpose() * S.inverse();
     x_post = x_prio + K * (z - C * x_prio);
     P_post = P_prio - K * S * K.transpose();

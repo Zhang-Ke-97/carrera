@@ -3,6 +3,7 @@
 
 #include <Eigen/Dense>
 
+#define FACTOR_MICRO 0.000001
 typedef Eigen::VectorXd Vector;
 typedef Eigen::MatrixXd Matrix;
 
