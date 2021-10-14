@@ -44,11 +44,11 @@ int main(){
     struct sockaddr_in pi0addr;  
     pi0addr.sin_family = AF_INET;
     pi0addr.sin_port = htons(DATA_PORT);
-    // Use either pi0addr.sin_addr.s_addr = INADDR_ANY;
-    //         or inet_pton(AF_INET, "192.168.1.102.", &(pi0addr.sin_addr)); 
-    // to bind the socket to a specific IP 
+    /* Use either pi0addr.sin_addr.s_addr = INADDR_ANY;
+               or inet_pton(AF_INET, "192.168.1.200.", &(pi0addr.sin_addr)); 
+       to bind the socket to a specific IP 
+    */
     pi0addr.sin_addr.s_addr = INADDR_ANY;
-    //////inet_pton(AF_INET, "192.168.0.10", &pi0addr.sin_addr);
     std::memset(pi0addr.sin_zero, 0, sizeof(pi0addr.sin_zero));
 
     // bind the socket to the address we specified
@@ -56,7 +56,9 @@ int main(){
         std::cout << "binding failed\n";
         std::exit(1);
     }else{
-        std::cout << "Socket created.\n" << "Binding compelte\n";
+        std::cout << "Socket created.\n" << "Binding compelte.\n";
+        std::cout << "Waiting for connection from Pi4b. ";
+        std::cout << "To connect, run acc_client on Pi4b\n";
     }
     
     // listen and accept

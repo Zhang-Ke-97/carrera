@@ -35,9 +35,19 @@ public:
     void set_up_model(Matrix A, Matrix B, Matrix C);
     void set_measure_noise(Matrix R_new);
     void set_model_noise(Matrix Q_new);    
-    void predict(Vector u_fresh); // predict with control input
-    void predict(); // predict without control input
+    
+    // predict with control input
+    void predict(Vector u_fresh); 
+    
+    // predict without control input
+    void predict(); 
+    
+    // update with measurements
     void update(Vector z_fresh);
+    
+    // update without measurements (To keep x_post updated)
+    void update();
+    
     void info();
     Vector get_prio_state_estm();
     Vector get_post_state_estm();

@@ -39,7 +39,7 @@ void KF::predict(Vector u_fresh){
 }
 
 void KF::predict(){
-    x_prio = A * x_post + B * u;
+    x_prio = A * x_post;
     P_prio = A * P_post * A.transpose() + Q;
 }
 
@@ -51,6 +51,11 @@ void KF::update(Vector z_fresh){
     K = P_prio * C.transpose() * S.inverse();
     x_post = x_prio + K * (z - C * x_prio);
     P_post = P_prio - K * S * K.transpose();
+}
+
+void KF::update(){
+    x_post = x_prio;
+    P_post = P_prio;
 }
 
 Vector KF::get_prio_state_estm(){

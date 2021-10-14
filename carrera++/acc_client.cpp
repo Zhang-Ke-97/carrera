@@ -1,7 +1,8 @@
 /* To compile, run
-    g++ acc_client.cpp KF.cpp -o ../build/acc_client -I /usr/local/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
+    g++ acc_client.cpp KF.cpp -o ../build/acc_client -I /usr/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
 */
 #include <iostream>
+#include <iomanip>
 #include <sstream>
 #include <fstream>
 #include <cstring> // memset
@@ -21,10 +22,13 @@ extern "C" {
 
 #define DATA_PORT 5560                   // for socket
 #define IP_SERVER_PI "192.168.1.200"     // for socket
+
 #define LENGTH(a) sizeof(a)/sizeof(a[0]) // easy to handle array length
+#define CALIBRATION_ACC_TG 0.22          // off-set of tangential accel (in N/kg)
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
 #define CARRERA_BAHN_LENGTH 4.583        // length of Carrera-Bahn (in m)
 #define GATE_DISTENCE 0.06               // distance between lasers (in m)
+
 #define GPIO_GATE_1 14                   // GPIO Pin for light sensor at position 1
 #define GPIO_GATE_2 15                   // GPIO Pin for light sensor at position 2
 
@@ -34,7 +38,7 @@ extern "C" {
 // save accel, velo, etc in Dashboard
 Dashboard dsb;
 
-// sampling periode 
+// sampling periode (in s)
 const double T_sample = 0.1;    
 
 // open csv file
@@ -175,13 +179,17 @@ int main(){
                                         << "Ay=" << dsb.acc_y << "g, "
                                         << "Az=" << dsb.acc_z << "g\n";
         // convert acceleration to N/kg
-        dsb.acc_x *= GRAVITY_STG;
-        dsb.acc_y *= GRAVITY_STG;
-        dsb.acc_z *= GRAVITY_STG;
+        dsb.acc_x *= -GRAVITY_STG;
+        dsb.acc_y *= -GRAVITY_STG;
+        dsb.acc_z *= -GRAVITY_STG;
+        
+        // calibrate tagential accel
+        dsb.acc_z -= CALIBRATION_ACC_TG;
         
         // perform kalman filtering
         Acc_tg << dsb.acc_z;
         kf.predict(Acc_tg);
+        kf.update();
 
         // save prior state estimate in vector x
         state_tg << kf.get_prio_state_estm(); 
@@ -255,12 +263,12 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
 
 
 static void show_features(const char* s /* ="\0" */){
-   std::cout << s
-             << "Ax=" << dsb.acc_x << "m/s^2, "
-             << "Ay=" << dsb.acc_y << "m/s^2, " 
-             << "Az=" << dsb.acc_z << "m/s^2," 
-             << "Vz" << state_tg(1) << "m/s," 
-             << "Sz=" << state_tg(0) << "m," 
+    std::cout << s
+             << "Ax=" << std::setprecision (3) << dsb.acc_x << "m/s^2, "
+             << "Ay=" << std::setprecision (3) << dsb.acc_y << "m/s^2, " 
+             << "Az=" << std::setprecision (3) << dsb.acc_z << "m/s^2, " 
+             << "Vz=" << std::setprecision (3) << state_tg(1) << "m/s, " 
+             << "Sz=" << std::setprecision (3) << state_tg(0) << "m, " 
              << "width PWM" << "\n";
 }
 
