@@ -83,7 +83,7 @@ int main(){
         recv(conn_fd, recv_buffer, 1024, 0);
         command = std::string(recv_buffer);
         if (command == "get acc"){
-            read_acc(i2c_fd, &Ax, &Ay, &Az);
+            mpu.read_acc(&Ax, &Ay, &Az);
             reply = std::to_string(Ax) + sep_acc +
                     std::to_string(Ay) + sep_acc + 
                     std::to_string(Az);
@@ -103,19 +103,6 @@ int main(){
     return 0;
 }
 
-
-std::string read_acc(){
-    double acc_x = 0.0;
-    double acc_y = 1.0;
-    double acc_z = 2.0;
-
-    std::string sep_acc = " ";
-
-    std::string reply = std::to_string(acc_x) + sep_acc +
-                        std::to_string(acc_y) + sep_acc + 
-                        std::to_string(acc_z);
-    return reply;
-} 
 
 std::string read_seq(){
     static int seq_counter = 0;
