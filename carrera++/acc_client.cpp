@@ -24,7 +24,7 @@ extern "C" {
 #define IP_SERVER_PI "192.168.1.200"     // for socket
 
 #define LENGTH(a) sizeof(a)/sizeof(a[0]) // easy to handle array length
-#define CALIBRATION_ACC_TG 0.22          // off-set of tangential accel (in N/kg)
+#define CALIBRATION_ACC_TG 1.85          // off-set of tangential accel (in N/kg)
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
 #define CARRERA_BAHN_LENGTH 4.583        // length of Carrera-Bahn (in m)
 #define GATE_DISTENCE 0.06               // distance between lasers (in m)

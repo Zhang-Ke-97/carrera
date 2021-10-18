@@ -22,7 +22,7 @@ extern "C" {
 Dashboard dsb;
 
 // sampling periode [s]
-const double T_sample = 1;    
+const double T_sample = 0.1;    
 
 // open csv file
 std::ofstream training_data("train.csv");
