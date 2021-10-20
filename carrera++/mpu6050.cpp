@@ -45,13 +45,34 @@ short MPU6050::read_reg(int reg){
     return value;
 }
 
+void MPU6050::calibrate(int samples/* =100 */){
+    Ax_mean = 0.0;
+    Ay_mean = 0.0;
+    Az_mean = 0.0;
+    for (unsigned short i = 1; i <= samples; i++){
+        double Ax = 0.0;
+        double Ay = 0.0;
+        double Az = 0.0;
+        this->read_acc(&Ax, &Ay, &Az, false);
+        Ax_mean = Ax_mean*(i-1)/i + Ax/i;
+        Ay_mean = Ay_mean*(i-1)/i + Ay/i;
+        Az_mean = Az_mean*(i-1)/i + Az/i;
+    }
+    std::cout << "Calibration of MPU complete\n";
+}
 
-void MPU6050::read_acc(double *Ax, double *Ay, double *Az){
+void MPU6050::read_acc(double *Ax, double *Ay, double *Az, bool calb/* =true */){
     short Ax_raw = read_reg(ACCEL_XOUT_H);
     short Ay_raw = read_reg(ACCEL_YOUT_H);
     short Az_raw = read_reg(ACCEL_ZOUT_H);
 
     *Ax = (Ax_raw/16384.0);
     *Ay = (Ay_raw/16384.0);
-    *Az = (Az_raw/16384.0);    
+    *Az = (Az_raw/16384.0);  
+
+    if(calb){
+        *Ax -= Ax_mean;
+        *Ay -= Ay_mean;
+        *Az -= Az_mean;
+    }
 }

@@ -26,6 +26,11 @@ class MPU6050{
 private:
     int i2c_fd = MPU6050_ADDR;
     int adapter_nr;
+
+    double Ax_mean;
+    double Ay_mean;
+    double Az_mean;
+
 public:
     MPU6050(int adp = 1);
     ~MPU6050();
@@ -39,9 +44,13 @@ public:
     
     // read register 'reg' and return raw value
     short read_reg(int reg);
+
+    // compute the mean of acceleration data
+    void calibrate(int samples=100);
     
-    // read acceleration data and save into Ax, Ay, Az
-    void read_acc(double* Ax, double *Ay, double *Az);
+    // read acceleration data and save into Ax, Ay, Az, 
+    // option: calibration or not
+    void read_acc(double* Ax, double *Ay, double *Az, bool calb=false);
 };
 
 

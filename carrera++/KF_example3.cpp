@@ -1,12 +1,10 @@
-/* Run this programm on server Pi 
-   To compile, run
-        g++ debug_kf.cpp KF.cpp mpu6050.cpp -o ../build/debug_kf -I /usr/include/eigen3 -Wno-psabi -li2c
+/*  This program takes real sensor data and filter it
+    Run this programm on Pi which is connected to MPU
+    To compile, run
+        g++ KF_example3.cpp KF.cpp mpu6050.cpp -o ../build/KF_example3 -I /usr/include/eigen3 -Wno-psabi -li2c
 
 */
 #include <iostream>
-#include <sstream>
-#include <fstream>
-#include <cstring> // memset
 #include <cstdlib> //exit
 #include <ctime>
 #include "KF.h"
@@ -23,9 +21,6 @@ Dashboard dsb;
 
 // sampling periode [s]
 const double T_sample = 0.1;    
-
-// open csv file
-std::ofstream training_data("train.csv");
 
 // Kalman Filter
 KF kf(3,3,1); // dim_x, dim_z, dim_u
