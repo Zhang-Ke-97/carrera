@@ -31,6 +31,7 @@ int main(){
         exit(1);
     }
     mpu.config();
+    mpu.calibrate(1000);
 
     ////////////////////////////// set up socket //////////////////////////////
     // create socket
