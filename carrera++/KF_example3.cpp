@@ -13,7 +13,7 @@
 extern "C" {
     #include <unistd.h>     // sleep
 }
-#define CALIBRATION_ACC_TG 2.55 // off-set [m/s^2]of acc_tg due to gravity
+
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart [N/kg]
 
 // save accel, velo, etc in Dashboard
@@ -85,10 +85,12 @@ int main(){
         exit(1);
     }
     mpu.config();
+    mpu.calibrate(1000);
+
     ///////////////////////////////// Big while-loop /////////////////////////////////
     while (1){
         // read accelerations
-        mpu.read_acc(&(dsb.acc_x), &(dsb.acc_y), &(dsb.acc_z));
+        mpu.read_acc(&(dsb.acc_x), &(dsb.acc_y), &(dsb.acc_z), 1);
         std::cout << "read data: " << dsb.acc_x << "\t" << dsb.acc_y << "\t" << dsb.acc_z << "\n";
         
 
@@ -96,10 +98,7 @@ int main(){
         dsb.acc_x *= -GRAVITY_STG;
         dsb.acc_y *= -GRAVITY_STG;
         dsb.acc_z *= -GRAVITY_STG;
-        
-        // calibrate tagential accel
-        dsb.acc_z -= CALIBRATION_ACC_TG;
-        
+                
         // perform kalman filtering
         Acc_tg << dsb.acc_z;
         kf.predict(Acc_tg);

@@ -13,6 +13,11 @@ extern "C" {
 
 
 int main(int argc, char const *argv[]){
+    // number of iterations for calibration
+    int itr_calb = 0;
+    std::cout << "How many iterations do you want for calibration? ";
+    std::cin >> itr_calb;
+
     // create mpu object
     MPU6050 mpu;
 
@@ -31,6 +36,9 @@ int main(int argc, char const *argv[]){
     // read calibrated data
     while (1){
         mpu.read_acc(&Ax, &Ay, &Az, 1);
+        std::cout << "Ax= " << Ax << "g, "
+                  << "Ay= " << Ay << "g, "
+                  << "Az= " << Az << "g\n";
         usleep(1*1000*1000);
     } 
     return 0;
