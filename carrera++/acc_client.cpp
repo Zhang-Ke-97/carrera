@@ -24,7 +24,7 @@ extern "C" {
 #define IP_SERVER_PI "192.168.1.200"     // for socket
 
 #define LENGTH(a) sizeof(a)/sizeof(a[0]) // easy to handle array length
-#define CALIBRATION_ACC_TG 2.4186          // off-set of tangential accel (in N/kg)
+
 #define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
 #define CARRERA_BAHN_LENGTH 4.583        // length of Carrera-Bahn (in m)
 #define GATE_DISTENCE 0.06               // distance between lasers (in m)
@@ -61,7 +61,14 @@ Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]");
     len: length of the C string s
     x, y, z: extracted information will be stored in these vaiables 
 */
-static void extract_acc_from_string(char* s, int len, double &x, double &y, double &z);
+static void str_to_doubles(char* s, int len, double &x, double &y, double &z);
+
+/* Helper: extracts doubles from the string we received
+    s: the C string from which we would like to extract doubles
+    len: length of the C string s
+    x, y, z: extracted information will be stored in these vaiables 
+*/
+static void str_to_accel(char* s, int len, Dashboard &dsb);
 
 /* Write features in .csv file (accel, velo, etc.) */
 static void save_features(std::ofstream output_file);
@@ -174,7 +181,7 @@ int main(){
         recv(socket_fd, recv_buffer, 1024, 0);
 
         // extract acceleration (normalized to g) from recveive buffer
-        extract_acc_from_string(recv_buffer, LENGTH(recv_buffer), dsb.acc_x, dsb.acc_y, dsb.acc_z);
+        str_to_doubles(recv_buffer, LENGTH(recv_buffer), dsb.acc_x, dsb.acc_y, dsb.acc_z);
         std::cout << "Received accel: " << "Ax=" << dsb.acc_x << "g, "
                                         << "Ay=" << dsb.acc_y << "g, "
                                         << "Az=" << dsb.acc_z << "g\n";
@@ -183,11 +190,8 @@ int main(){
         dsb.acc_y *= -GRAVITY_STG;
         dsb.acc_z *= -GRAVITY_STG;
         
-        // calibrate tagential accel
-        dsb.acc_z -= CALIBRATION_ACC_TG;
-        
         // perform kalman filtering
-        Acc_tg << dsb.acc_z;
+        Acc_tg << dsb.acc_y;
         kf.predict(Acc_tg);
         kf.update();
 
@@ -211,12 +215,25 @@ int main(){
 // s: the C string from which we would like to extract doubles
 // len: length of the C string s
 // x, y, z: extracted information will be stored in these vaiables 
-static void extract_acc_from_string(char* s, int len, double &x, double &y, double &z){
+static void str_to_doubles(char* s, int len, double &x, double &y, double &z){
     std::string str(s, len);
     std::stringstream ss(str);
     ss >> x;
     ss >> y;
     ss >> z;
+}
+
+/* Helper: extracts doubles from the string we received
+    s: the C string from which we would like to extract doubles
+    len: length of the C string s
+    x, y, z: extracted information will be stored in these vaiables 
+*/
+static void str_to_accel(char* s, int len, Dashboard &dsb){
+    std::string str(s, len);
+    std::stringstream ss(str);
+    ss >> dsb.acc_x;
+    ss >> dsb.acc_x;
+    ss >> dsb.acc_x; 
 }
 
 // ISR call back function associated gate 1
