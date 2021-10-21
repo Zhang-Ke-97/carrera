@@ -203,6 +203,8 @@ int main(){
         save_features(training_data);
         #endif
         show_features("Predict: ");
+	std::cout << std::endl;
+
         usleep(T_sample*1000*1000);
     }
     
@@ -284,8 +286,8 @@ static void show_features(const char* s /* ="\0" */){
              << "Ax=" << std::setprecision (3) << dsb.acc_x << "m/s^2, "
              << "Ay=" << std::setprecision (3) << dsb.acc_y << "m/s^2, " 
              << "Az=" << std::setprecision (3) << dsb.acc_z << "m/s^2, " 
-             << "Vz=" << std::setprecision (3) << state_tg(1) << "m/s, " 
-             << "Sz=" << std::setprecision (3) << state_tg(0) << "m, " 
+             << "Vy=" << std::setprecision (3) << state_tg(1) << "m/s, " 
+             << "Sy=" << std::setprecision (3) << state_tg(0) << "m, " 
              << "width PWM" << "\n";
 }
 
