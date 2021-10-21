@@ -24,16 +24,14 @@ struct Dashboard{
 
     // returns velocity (m/s) of the car at the 2nd laser gate
     // parameter: distance between two gates
-    double get_velocity(double gate_distance){
+    void compute_velocity(double gate_distance){
         double duration_in_sec = double(t_gate2-t_gate1)/CLOCKS_PER_SEC;
         velo = gate_distance/duration_in_sec;
-        return velo;
     }
 
     // computes the mileage from cycle and bahn length
-    double get_mileage(double carrera_bahn_length){
+    void compute_mileage(double carrera_bahn_length){
         mileage = cycle*carrera_bahn_length;
-        return mileage;
     }
 
     void set_t_gate1(){
