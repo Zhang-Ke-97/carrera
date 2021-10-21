@@ -247,6 +247,7 @@ void gate1_ISR_callback(int gpio, int level, uint32_t tick){
     // set timer and accumulate cycle
     dsb.set_t_gate1();
     dsb.cycle++;
+    dsb.compute_mileage(CARRERA_BAHN_LENGTH);
     std::cout << "\n" << "car arrived at gate 1, " << "cycle=" << dsb.cycle << "\n\n";
 }
 
@@ -258,7 +259,7 @@ void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     }
     // set timer and compute velocity
     dsb.set_t_gate2();
-    dsb.get_velocity(GATE_DISTENCE);
+    dsb.compute_velocity(GATE_DISTENCE);
 
     #ifdef ADD_KALMAN
     // kalman filter: update()
