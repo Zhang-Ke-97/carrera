@@ -241,7 +241,7 @@ static void str_to_accel(char* s, int len, Dashboard &dsb){
 // ISR call back function associated gate 1
 void gate1_ISR_callback(int gpio, int level, uint32_t tick){
     // check if the car really arrived at gate 1
-    if(clock()-dsb.t_gate1 < 3*CLOCKS_PER_SEC){
+    if(clock()-dsb.t_gate1 < CLOCKS_PER_SEC/10){ // divided by 10: experimental
     	return;
     }
     // set timer and accumulate cycle
@@ -254,7 +254,7 @@ void gate1_ISR_callback(int gpio, int level, uint32_t tick){
 // ISR call back function associated gate 2
 void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     // check if the car really arrived at gate 2
-    if(clock()-dsb.t_gate2 < 3*CLOCKS_PER_SEC){
+    if(clock()-dsb.t_gate2 < CLOCKS_PER_SEC/10){ // divided by 10: experimental
     	return;
     }
     // set timer and compute velocity
