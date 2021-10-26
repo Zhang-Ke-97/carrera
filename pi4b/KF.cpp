@@ -1,3 +1,9 @@
+/**
+ * @file KF.cpp
+ * @brief Source file for the class KF 
+ * @author Ke Zhang
+ * @date 31. October 2021
+ */
 #include "KF.h"
 #include <iostream>
 
