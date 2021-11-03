@@ -61,6 +61,7 @@ The characteristics of the light sensors is shown as bellow
 | :------------ |:---------------:| -----:|
 | High           | dark (actual light < threshold)                 | car arrived |
 | Low           | light (actual light > threshold)                |   no car |
+
 One can tune the sensitivity of the light sensors by screwing the nut on it. 
 
 The connection between the first light sensor and Pi 4b is shown as follows
@@ -79,4 +80,16 @@ The connection between the second light sensor and Pi 4b is shown as follows
 
 To set up the Lichtschranke, two options were considered.
 1. Use external light source (e.g. a laser unit) to provide a high light intensity. In this case, the threshold should be tuned higher. It is also shown that the refelection of the laser via the carrera track is strong enough as well.
-2. Use sun light purely without external light source. In this case, the threshold should be tuned lower. As long as we put the light sensor close enough to the car, a "dark" output will indeed be produced. The relating code is already ajusted to this set-up.
+2. Use sun light purely without external light source. In this case, the threshold should be tuned lower. As long as we put the light sensor close enough to the car, a "dark" output will indeed be produced. The relating code is already adjusted to this set-up.
+
+## Complile and run
+Pi 0 acts as a server while the Pi 4b acts as a client. We need to first run the program on Pi 0, after which we run the program on Pi 4b. Otherwise, Pi 4b will fail to connect to Pi 0.
+To compile the binary file on Pi 0, go to the directory `pi0` and run
+```
+g++ acc_server.cpp mpu6050.cpp -o ../build/acc_server -li2c 
+```
+To compile the binary file on Pi 0, go to the directory `pi4b` and run
+```
+g++ acc_client.cpp KF.cpp -o ../build/acc_client -I /usr/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
+```
+Make sure to add `sudo` when you run `acc_client` on Pi 4b.
