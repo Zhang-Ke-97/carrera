@@ -1,81 +1,120 @@
-/* To compile, run:
-    g++-11 -I /usr/local/include/eigen3 KF.cpp KF2_driver.cpp -o ../build/KF2_driver
-*/
-
-/* Test file: 1D movement with const velocity
-    state vector x = [position, velocity]^T
-    measurement  z = position
-*/
-#ifdef _WIN32
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-
-#include "KF.h"
+/**
+ * @file KF_example2.cpp
+ * @brief Test file for Kalman filter (KF)
+ * @author Ke Zhang
+ * @date 31. Oktober 2021
+ * 
+ * The KF is fed with real sensor readouts and 
+ * tries to estimate the true acceleration, position and velocity. Conncet MPU6050 to Pi 4b and run
+ * 
+ * g++ KF_example3.cpp KF.cpp mpu6050.cpp -o ../build/KF_example3 -I /usr/include/eigen3 -Wno-psabi -li2c
+ */ 
 #include <iostream>
+#include <cstdlib> //exit
+#include <ctime>
+#include "KF.h"
+#include "mpu6050.h"
+#include "dashboard.h"
+extern "C" {
+    #include <unistd.h>     // sleep
+}
 
-#include <random> // for 2-dim KF testing
-#include <cmath> // for 2-dim KF testing
+#define GRAVITY_STG 9.80884              // gravitation in Stuttgart [N/kg]
 
-// read the current mileage
-static double read_position(int t_step); 
+// save accel, velo, etc in Dashboard
+Dashboard dsb;
 
-// velocity of the object
-double velocity = 5;
+// sampling periode [s]
+const double T_sample = 0.1;    
 
-// sampling periode 
-const double T_sample = 0.1;
+// Kalman Filter
+KF kf(3,3,1); // dim_x, dim_z, dim_u
+
+// saves prior/posterior state estimate
+Vector state_tg(3);
+
+// saves measurements
+Vector measm(3);
 
 // set matrix print-layout
 Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); 
 
+
 int main(){
-    // set up matrices
-    Matrix A(2,2);
-    A << 1.0, T_sample,
-         0.0,  1.0; 
+    // sampling periode 
+    const double T_sample = 1.0;  
 
-    Matrix B(2,1);
+    // state transistion mtx 
+    Matrix A(3,3);
+    A << 1.0, T_sample, T_sample*T_sample/2,
+         0.0,      1.0,            T_sample, 
+         0.0,      0.0,                 0.0;
 
-    B << 0.0, 
-         0.0;
-    Matrix C(1,2);
+    // control input mtx
+    Matrix B(3,1);
+    B << 0.0,
+         0.0,
+         1.0;
+         
+    // measurement output mtx
+    Matrix C(3,3);
+    C << 1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0;
 
-    C << 1.0, 0.0;
+    // model noise cov
+    Matrix Q(3,3);
+    Q << 1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0;
+
+    // measurement noise cov
+    Matrix R(3,3);
+    R << 1.0, 0.0, 0.0,
+         0.0, 1.0, 0.0,
+         0.0, 0.0, 1.0;
     
-    // define kalman filter
-    KF kf = KF(2,1,1);
-    kf.set_up_model(A, B, C);
+    // control input: accel in z-direction
+    Matrix Acc_tg(1,1);
+    Acc_tg << 0;
     
-    // show info
-    std::cout << "Kalman Filter tracking an object with constant velocity of " << velocity << "\n";
-    std::cout << "initial estimate:\n" << kf.get_post_state_estm().format(fmt) << "\n";
-    std::cout << "initial error covariance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
-    kf.info();
-    
-    // start filtering
-    for (int i = 0; i < 21; i++){   
-        kf.predict();
-        Vector measurement {{read_position(i)}};
-        kf.update(measurement);
+    // set up Kalman Filter
+    kf.set_up_model(A, B, C);    
+    kf.set_model_noise(Q);
+    kf.set_measure_noise(R);
+
+    ////////////////////////////// set up MPU6050 //////////////////////////////
+    MPU6050 mpu;
+    if(!mpu.init()){
+        std::cout << "Failed to initiate MPU6050\n";
+        exit(1);
+    }
+    mpu.config();
+    mpu.calibrate(1000);
+
+    ///////////////////////////////// Big while-loop /////////////////////////////////
+    while (1){
+        // read accelerations
+        mpu.read_acc(&(dsb.acc_x), &(dsb.acc_y), &(dsb.acc_z), 1);
+        std::cout << "read data: " << dsb.acc_x << "\t" << dsb.acc_y << "\t" << dsb.acc_z << "\n";
         
-        std::cout << "t=" << i*T_sample << "\n";
-        std::cout << "measured:\n" << measurement.format(fmt) << "\n";
-        std::cout << "estimate:\n" << kf.get_post_state_estm().format(fmt) << "\n";
-        std::cout << "error variance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
-        sleep(1);
-    }   
+
+        // convert acceleration to N/kg
+        dsb.acc_x *= -GRAVITY_STG;
+        dsb.acc_y *= -GRAVITY_STG;
+        dsb.acc_z *= -GRAVITY_STG;
+                
+        // perform kalman filtering
+        Acc_tg << dsb.acc_z;
+        kf.predict(Acc_tg);
+        kf.update();
+        
+        // save prior state estimate in vector x
+        state_tg << kf.get_prio_state_estm(); 
+        std::cout << "state estimate=\n" << state_tg.format(fmt) << std::endl;
+        usleep(T_sample*1000*1000);
+    }
+    
     return 0;
 }
 
-
-static double read_position(int t_step){
-    double position_init = 10;
-    // set up gaussian noise generator
-    double mean = 0.0;
-    double stddev = 0.1;
-    std::default_random_engine generator;
-    std::normal_distribution<double> dist(mean, stddev);
-    return position_init + velocity*t_step*T_sample + dist(generator);
-}

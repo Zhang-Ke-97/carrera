@@ -1,3 +1,9 @@
+/**
+ * @file mpu6050.h
+ * @brief Source file for the struct Dashboard 
+ * @author Ke Zhang
+ * @date 31. October 2021
+ */
 #include "mpu6050.h"
 #include <iostream>
 
