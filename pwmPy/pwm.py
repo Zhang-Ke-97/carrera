@@ -1,3 +1,9 @@
+##
+# @file pwm.py
+# @brief example file for motor contoller
+# @author Ke Zhang
+# @date 31. Octorber 2021
+
 import RPi.GPIO as GPIO
 
 L298N_IN1 = 24
