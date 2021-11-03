@@ -1,6 +1,18 @@
-/* To compile, run:
-    g++-11 -I /usr/local/include/eigen3 KF.cpp KF_driver.cpp -o ../build/KF_driver
-*/
+/**
+ * @file KF_example1.cpp
+ * @brief Test file for Kalman filter (KF)
+ * @author Ke Zhang
+ * @date 31. Oktober 2021
+ * 
+ * In this test file, a 1D movement with const velocity is considered.
+ * 
+ *   state vector x = [position, velocity]^T
+ * 
+ *   measurement  z = position
+ * 
+ * A noisy measurement of the position is fed into the KF. 
+ * The KF tries to estimate the true position and velocity 
+ */ 
 #ifdef _WIN32
 #include <Windows.h>
 #else
@@ -10,99 +22,67 @@
 #include "KF.h"
 #include <iostream>
 
-#include <random> // for 1-dim KF testing
-#include <cmath> // for 1-dim KF testing
+#include <random> // for 2-dim KF testing
+#include <cmath> // for 2-dim KF testing
+
+// read the current mileage
+static double read_position(int t_step); 
+
+// velocity of the object
+double velocity = 5;
+
+// sampling periode 
+const double T_sample = 0.1;
+
+// set matrix print-layout
+Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]"); 
 
 int main(){
-    Matrix A {{2.0}};
-    Matrix B {{0.0}};
-    Matrix C {{1.0}};
-    Matrix Q {{2.0}}; // model noise
-    Matrix R {{1.0}}; // measurement noise
-    Matrix P {{1000.0}}; // initial error cov
-    Vector x {{0.0}}; // initial state estimate
-    Vector u {{0.0}}; 
-    Vector z {{0.0}};
+    // set up matrices
+    Matrix A(2,2);
+    A << 1.0, T_sample,
+         0.0,  1.0; 
 
-    KF kf = KF(A, B, C, Q, R, P, x, u, z);
-    double mean = 0.0;
-    double stddev = 0.1;
-    std::default_random_engine generator;
-    std::normal_distribution<double> dist(mean, stddev);
+    Matrix B(2,1);
+
+    B << 0.0, 
+         0.0;
+    Matrix C(1,2);
+
+    C << 1.0, 0.0;
     
-    std::cout << "start kalman filering...\n";
-    std::cout << "estimate:" << kf.get_state_estimate() << "\n";
-    std::cout << "error variance:" << kf.get_error_covariance() << "\n\n";
+    // define kalman filter
+    KF kf = KF(2,1,1);
+    kf.set_up_model(A, B, C);
     
-    for (int i = 0; i < 11; i++){   
+    // show info
+    std::cout << "Kalman Filter tracking an object with constant velocity of " << velocity << "\n";
+    std::cout << "initial estimate:\n" << kf.get_post_state_estm().format(fmt) << "\n";
+    std::cout << "initial error covariance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
+    kf.info();
+    
+    // start filtering
+    for (int i = 0; i < 21; i++){   
         kf.predict();
-        Vector measurement {{std::pow(2,i)+dist(generator)}};
+        Vector measurement {{read_position(i)}};
         kf.update(measurement);
         
-        std::cout << "measured: " << measurement << "\n";
-        std::cout << "estimate:" << kf.get_state_estimate() << "\n";
-        std::cout << "error variance:" << kf.get_error_covariance() << "\n\n";
+        std::cout << "t=" << i*T_sample << "\n";
+        std::cout << "measured:\n" << measurement.format(fmt) << "\n";
+        std::cout << "estimate:\n" << kf.get_post_state_estm().format(fmt) << "\n";
+        std::cout << "error variance:\n" << kf.get_error_covariance().format(fmt) << "\n\n";
         sleep(1);
-    }
-    
+    }   
     return 0;
 }
 
 
-int main2()
-{
-    double T = 0.1; // sampling periode
-    // set state transition matrix
-    Matrix A {
-        {1.0,  T,   T*T/2},
-        {0.0,  1.0, T},
-        {0.0,  0.0, 0.0}
-    };
-    // set the control matrix
-    Matrix B {
-        {0.0},
-        {0.0},
-        {1.0}
-    };
-    // set the measurement matrix
-    Matrix C {
-        {1.0, 1.0, 0.0},
-        {0.0, 0.0, 1.0}  
-    };
-    // set the covariance of model noise
-    Matrix Q {
-        {1.0,  0.0,  0.0},
-        {0.0,  1.0,  0.0},
-        {0.0,  0.0,  1.0}
-    };
-    // set the covariance of measurement noise
-    Matrix R {
-        {0.5, 0.0},
-        {0.0, 0.5}
-    };
-    // set the initial error covariance matrix
-    Matrix P {
-        {1000.0,   0.0,      0.0},
-        {0.0,      1000.0,   0.0},
-        {0.0,      0.0,      1000.0},
-    };
-    // set the initial state estimate
-    Vector x{
-        {0},
-        {0},
-        {0},
-    };
-    // set the initial measurements
-    Vector z {
-        {0},
-        {0}
-    };
-    // set the initial input
-    Vector u {
-        {0}
-    };
-
-    KF kf = KF(A, B, C, Q, R, P, x, z, u);
-    
-    return 0;
+static double read_position(int t_step){
+    double position_init = 10;
+    // set up gaussian noise generator
+    double mean = 0.0;
+    double stddev = 0.1;
+    std::default_random_engine generator;
+    std::normal_distribution<double> dist(mean, stddev);
+    return position_init + velocity*t_step*T_sample + dist(generator);
 }

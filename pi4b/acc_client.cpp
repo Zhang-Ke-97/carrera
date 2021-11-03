@@ -3,6 +3,7 @@
  * @brief Main file for reveiveing acceleration data from Pi 0 and feed the data into Kalman Filter. 
  * @author Ke Zhang
  * @date 31. October 2021
+ * 
  * To compile, run
  * g++ acc_client.cpp KF.cpp -o ../build/acc_client -I /usr/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
 */
@@ -25,17 +26,17 @@ extern "C" {
     #include <pigpio.h>     // GPIO Lib
 }
 
-#define DATA_PORT 5560                   /** for socket */
-#define IP_SERVER_PI "192.168.1.200"     /** for socket */
+#define DATA_PORT 5560                   /** @brief for socket */
+#define IP_SERVER_PI "192.168.1.200"     /** @brief for socket */
 
-#define LENGTH(a) sizeof(a)/sizeof(a[0]) /** easy to handle array length */
+#define LENGTH(a) sizeof(a)/sizeof(a[0]) /** @brief easy to handle array length */
 
-#define GRAVITY_STG 9.80884              /** gravitation in Stuttgart (in N/kg) */
-#define CARRERA_BAHN_LENGTH 4.583        /** length of Carrera-Bahn (in m) */
-#define GATE_DISTENCE 0.06               /** distance between lasers (in m) */
+#define GRAVITY_STG 9.80884              /** @brief gravitation in Stuttgart (in N/kg) */
+#define CARRERA_BAHN_LENGTH 4.583        /** @brief length of Carrera-Bahn (in m) */
+#define GATE_DISTENCE 0.06               /** @brief distance between lasers (in m) */
 
-#define GPIO_GATE_1 14                   /** GPIO Pin for light sensor at position 1 */
-#define GPIO_GATE_2 15                   /** GPIO Pin for light sensor at position 2 */
+#define GPIO_GATE_1 14                   /** @brief GPIO Pin for light sensor at position 1 */
+#define GPIO_GATE_2 15                   /** @brief GPIO Pin for light sensor at position 2 */
 
 #define ADD_KALMAN
 // #define WRITE_FEATURES

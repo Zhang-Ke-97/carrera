@@ -1,6 +1,13 @@
 
-/* To compile, run
-    g++ test_gates.cpp -o ../build/test_gates -lpthread -lpigpio -lrt
+/** 
+ * @file test_gates.cpp
+ * @brief Test file for Lichtschranke
+ * @author Ke Zhang
+ * @date 31. Oktober 2021
+ * 
+ * Run this program to test whether the interrupt service routines work with your Lichtschranke. 
+ * To compile, run
+ * g++ test_gates.cpp -o ../build/test_gates -lpthread -lpigpio -lrt
 */
 #include <iostream>
 #include <cstdlib> //exit
