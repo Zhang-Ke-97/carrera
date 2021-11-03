@@ -1,11 +1,22 @@
 # carrera
-In this project, we implemented the data transfer between raspberry pi 0 and raspberry pi 4b. The raspberry pi 0 reads acceleration data from the accelermeter unit MPU6050 and send them to pi 4b via WLAN. Pi 4b receives acceleration data and feeds them into a Kalman filter to produce a velocity and mileage estimates. 
+In this project, we implemented the data transfer between raspberry pi 0 and raspberry pi 4b. The raspberry pi 0 reads acceleration data from the accelermeter unit MPU6050 and send them to pi 4b via WLAN. Pi 4b receives acceleration data and feeds them into a Kalman filter to produce velocity and mileage estimates.
+
+All software-relating setups are already done on both pi. You can jump to hardware conncetion sections if you didn't reset the system files on both Pi.
 
 ## Libraries needed
 Install Eigen on Pi 4b by running
 ```
 sudo apt-get install libeigen3-dev
 ```
+Install `pigpio` library on Pi 4b by running
+```
+wget https://github.com/joan2937/pigpio/archive/master.zip
+unzip master.zip
+cd pigpio-master
+make
+sudo make install
+```
+A full reference to `pigpio` library can be found at http://abyz.me.uk/rpi/pigpio/cif.html#gpioSetISRFunc
 Install i2c library on Pi 0 by running 
 ```
 sudo apt-get install libi2c-dev
@@ -43,7 +54,7 @@ Make sure that both Pi are connected to Wifi `socket`. Then, follow the next ste
       `<ROUTER_IP>` follows from the step 1.
       `<DNS_IP>` follows from the step 2 or can be set manually, e.g. Google DNS `8.8.8.8`.
        
-## Set up MPU6050 and i2c-bus
+## Connect MPU6050 to Pi 0
 The connection between MPU6050 and Pi 0 is shown as follows
 | MPU6050       | Pi 0           | description |
 | :------------ |:---------------:| -----:|
@@ -55,7 +66,7 @@ The connection between MPU6050 and Pi 0 is shown as follows
 Orientation: y-direction should be tangential to the track. i.e. the direction of the car.
 Activate i2c-bus on server Pi
 
-## Set up light sensor
+## Connect light sensor to Pi 4b
 The characteristics of the light sensors is shown as bellow
 | Output       | Lighting condition            | interpretation |
 | :------------ |:---------------:| -----:|
@@ -81,6 +92,16 @@ The connection between the second light sensor and Pi 4b is shown as follows
 To set up the Lichtschranke, two options were considered.
 1. Use external light source (e.g. a laser unit) to provide a high light intensity. In this case, the threshold should be tuned higher. It is also shown that the refelection of the laser via the carrera track is strong enough as well.
 2. Use sun light purely without external light source. In this case, the threshold should be tuned lower. As long as we put the light sensor close enough to the car, a "dark" output will indeed be produced. The relating code is already adjusted to this set-up.
+
+## Connect motor controller to Pi 4b
+The connection between the motor controller L298N and Pi 4b is shown as follows
+| L298N         | Pi 4b         |
+| :------------ |:---------------:|
+| IN1           | GPIO 23       |
+| IN2           | GPIO 24       |
+| ENA           | GPIO 25       |
+| GND           | GND           |
+Moreover, connect L298N to the power supply 12 V.
 
 ## Complile and run
 Pi 0 acts as a server while the Pi 4b acts as a client. We need to first run the program on Pi 0, after which we run the program on Pi 4b. Otherwise, Pi 4b will fail to connect to Pi 0.
