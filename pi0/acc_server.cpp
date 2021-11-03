@@ -1,9 +1,12 @@
-/*  Before you complile, install the library:
-        sudo apt-get install libi2c-dev
-    To compile, run:
-        g++ acc_server.cpp mpu6050.cpp -li2c 
+/**
+ * @file acc_server.cpp
+ * @brief Main file for reading acceleration data from MPU6050 and sending the data to Pi 4b. 
+ * @author Ke Zhang
+ * @date 31. October 2021
+ * 
+ * To compile, run
+ * g++ acc_server.cpp mpu6050.cpp -o ../build/acc_server -li2c 
 */
-
 #define DATA_PORT 5560 // for socket
 
 #include "mpu6050.h"

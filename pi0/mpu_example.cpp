@@ -1,7 +1,8 @@
-/*  Before you complile, install the library:
-        sudo apt-get install libi2c-dev
-    To compile, run:
-        g++ mpu_driver.cpp mpu6050.cpp -li2c 
+/**
+ * @file mpu_example.cpp
+ * @brief Example program which reads the acceleration data from MPU6050
+ * @author Ke Zhang
+ * @date 31. October 2021
 */
 
 #include <iostream>

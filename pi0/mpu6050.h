@@ -3,6 +3,7 @@
  * @brief Header file for the class MPU6050 
  * @author Ke Zhang
  * @date 31. October 2021
+ * 
  * The address of registers of MPU6050 are defined as macros.
  * The set-ups of i2C bus and the i2C system calls are incorperated in member functions. 
  * The full data sheet of MPU6050 can be found at https://invensense.tdk.com/wp-content/uploads/2015/02/MPU-6000-Datasheet1.pdf
