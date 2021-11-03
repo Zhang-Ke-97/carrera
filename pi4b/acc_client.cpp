@@ -1,5 +1,10 @@
-/* To compile, run
-    g++ acc_client.cpp KF.cpp -o ../build/acc_client -I /usr/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
+/**
+ * @file acc_client.cpp
+ * @brief Main file for reveiveing acceleration data from Pi 0 and feed the data into Kalman Filter. 
+ * @author Ke Zhang
+ * @date 31. October 2021
+ * To compile, run
+ * g++ acc_client.cpp KF.cpp -o ../build/acc_client -I /usr/include/eigen3 -Wno-psabi -lpthread -lpigpio -lrt
 */
 #include <iostream>
 #include <iomanip>
@@ -20,17 +25,17 @@ extern "C" {
     #include <pigpio.h>     // GPIO Lib
 }
 
-#define DATA_PORT 5560                   // for socket
-#define IP_SERVER_PI "192.168.1.200"     // for socket
+#define DATA_PORT 5560                   /** for socket */
+#define IP_SERVER_PI "192.168.1.200"     /** for socket */
 
-#define LENGTH(a) sizeof(a)/sizeof(a[0]) // easy to handle array length
+#define LENGTH(a) sizeof(a)/sizeof(a[0]) /** easy to handle array length */
 
-#define GRAVITY_STG 9.80884              // gravitation in Stuttgart (in N/kg)
-#define CARRERA_BAHN_LENGTH 4.583        // length of Carrera-Bahn (in m)
-#define GATE_DISTENCE 0.06               // distance between lasers (in m)
+#define GRAVITY_STG 9.80884              /** gravitation in Stuttgart (in N/kg) */
+#define CARRERA_BAHN_LENGTH 4.583        /** length of Carrera-Bahn (in m) */
+#define GATE_DISTENCE 0.06               /** distance between lasers (in m) */
 
-#define GPIO_GATE_1 14                   // GPIO Pin for light sensor at position 1
-#define GPIO_GATE_2 15                   // GPIO Pin for light sensor at position 2
+#define GPIO_GATE_1 14                   /** GPIO Pin for light sensor at position 1 */
+#define GPIO_GATE_2 15                   /** GPIO Pin for light sensor at position 2 */
 
 #define ADD_KALMAN
 // #define WRITE_FEATURES
@@ -61,26 +66,59 @@ Eigen::IOFormat fmt(4, 0, "\t", "\n", "\t[", "]");
     len: length of the C string s
     x, y, z: extracted information will be stored in these vaiables 
 */
+/**
+ * @brief Helper: extracts doubles from a string 
+ * @param s the string which containing the doubles 
+ * @param len length of the string s
+ * @param x reference to variable containing acceleration in x direction
+ * @param y reference to variable containing acceleration in y direction
+ * @param z reference to variable containing acceleration in z direction
+ * @return none
+ */
 static void str_to_doubles(char* s, int len, double &x, double &y, double &z);
 
-/* Helper: extracts doubles from the string we received
-    s: the C string from which we would like to extract doubles
-    len: length of the C string s
-    x, y, z: extracted information will be stored in these vaiables 
-*/
+/**
+ * @brief Helper: extracts doubles from a string 
+ * @param len length of the string s
+ * @param dsb reference to struct Dashboard containing acceleration in x, y and z direction 
+ * @return none
+ */ 
 static void str_to_accel(char* s, int len, Dashboard &dsb);
 
-/* Write features in .csv file (accel, velo, etc.) */
+/**
+ * @brief Helper: Write features in .csv file (accel, velo, etc.)
+ * @param output_file The file which saves the features
+ * @return none
+ */
 static void save_features(std::ofstream output_file);
 
-/* Shows the features to console (accel, velo, etc.) */
+/**
+ * @brief Helper: Shows the features to console (accel, velo, etc.) to console
+ * @param s additional information (optional)
+ */
 static void show_features(const char* s = "\0");
  
  
-/* ISR call back function associated gate 1 */
+/**
+ * @brief Interrupt service routine (ISR) associated gate 1 
+ * 
+ * This function will be called if the car passes through gate 1
+ * @param gpio GPIO which the ISR is associated to
+ * @param level Falling or rising edge
+ * @param tick The number of microseconds since boot
+ * @return none
+ */
 void gate1_ISR_callback(int gpio, int level, uint32_t tick);
 
-/* ISR call back function associated gate 2 */
+/**
+ * @brief Interrupt service routine (ISR) associated gate 2
+ * 
+ * This function will be called if the car passes through gate 2
+ * @param gpio GPIO which the ISR is associated to
+ * @param level Falling or rising edge
+ * @param tick The number of microseconds since boot
+ * @return none
+ */
 void gate2_ISR_callback(int gpio, int level, uint32_t tick);
 
 int main(){
@@ -140,6 +178,7 @@ int main(){
     gpioSetPullUpDown(GPIO_GATE_1, PI_PUD_DOWN); 
     gpioSetPullUpDown(GPIO_GATE_2, PI_PUD_DOWN); 
 
+    // disable timeout for both ISR by setting timeout = -1
     gpioSetISRFunc(GPIO_GATE_1, RISING_EDGE, -1, gate1_ISR_callback);
     gpioSetISRFunc(GPIO_GATE_2, RISING_EDGE, -1, gate2_ISR_callback);
 
@@ -151,12 +190,13 @@ int main(){
         exit(1);
     }
 
-    // set up server address (and the port number) we want to connect to
+    // set up server address (and the port number) we want to connect to.
+    // Use either server_addr.sin_addr.s_addr = inet_addr(IP_SERVER_PI);
+    //         or inet_pton(AF_INET, IP_SERVER_PI, &server_addr.sin_addr); 
+    // to set up sin_addr
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(DATA_PORT);
-    // Use either server_addr.sin_addr.s_addr = inet_addr(IP_SERVER_PI);
-    //         or inet_pton(AF_INET, IP_SERVER_PI, &server_addr.sin_addr); 
     server_addr.sin_addr.s_addr = inet_addr(IP_SERVER_PI);
 
     // connect to server
@@ -167,6 +207,7 @@ int main(){
 
     // receive buffer of socket
     char recv_buffer[1024] = {0};
+
     // command to be sent to server, possible choices: "get acc", "get seq"
     std::string command = "get acc";
 
@@ -213,10 +254,7 @@ int main(){
 
 
 
-// extract doubles from the string we received
-// s: the C string from which we would like to extract doubles
-// len: length of the C string s
-// x, y, z: extracted information will be stored in these vaiables 
+
 static void str_to_doubles(char* s, int len, double &x, double &y, double &z){
     std::string str(s, len);
     std::stringstream ss(str);
@@ -225,11 +263,6 @@ static void str_to_doubles(char* s, int len, double &x, double &y, double &z){
     ss >> z;
 }
 
-/* Helper: extracts doubles from the string we received
-    s: the C string from which we would like to extract doubles
-    len: length of the C string s
-    x, y, z: extracted information will be stored in these vaiables 
-*/
 static void str_to_accel(char* s, int len, Dashboard &dsb){
     std::string str(s, len);
     std::stringstream ss(str);
@@ -238,7 +271,6 @@ static void str_to_accel(char* s, int len, Dashboard &dsb){
     ss >> dsb.acc_x; 
 }
 
-// ISR call back function associated gate 1
 void gate1_ISR_callback(int gpio, int level, uint32_t tick){
     // check if the car really arrived at gate 1
     if(clock()-dsb.t_gate1 < CLOCKS_PER_SEC/10){ // divided by 10: experimental
@@ -251,7 +283,6 @@ void gate1_ISR_callback(int gpio, int level, uint32_t tick){
     std::cout << "\n" << "car arrived at gate 1, " << "cycle=" << dsb.cycle << "\n\n";
 }
 
-// ISR call back function associated gate 2
 void gate2_ISR_callback(int gpio, int level, uint32_t tick){
     // check if the car really arrived at gate 2
     if(clock()-dsb.t_gate2 < CLOCKS_PER_SEC/10){ // divided by 10: experimental

@@ -11,7 +11,7 @@
 #ifndef MPU6050_H
 #define MPU6050_H
 
-#define PWR_MGMT_1    0x6B /** @brief power management  */
+#define PWR_MGMT_1    0x6B /** @def power management  */
 #define SMPLRT_DIV    0x19 /** @def sample rate divider */
 #define CONFIG        0x1A /** @def configeration */
 #define ACCEL_CONFIG  0x1C /** @def accelerometer */
