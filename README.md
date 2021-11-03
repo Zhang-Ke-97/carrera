@@ -3,13 +3,13 @@ In this project, we implemented the data transfer between raspberry pi 0 and ras
 
 ## Libraries needed
 Install Eigen on Pi 4b by running
-    ```
-    sudo apt-get install libeigen3-dev
-    ```
+```
+sudo apt-get install libeigen3-dev
+```
 Install i2c library on Pi 0 by running 
-    ```
-    sudo apt-get install libi2c-dev
-    ```
+```
+sudo apt-get install libi2c-dev
+```
     
 ## Set up IP on both Pi
 Make sure that both Pi are connected to Wifi `socket`. Then, follow the next steps to set static IP on both Pi.
