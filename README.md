@@ -4,7 +4,7 @@ In this project, we implemented the data transfer between raspberry pi 0 and ras
 All software-relating setups are already done on both pi. You can jump to hardware conncetion sections if you didn't reset the system files on both Pi.
 
 ## Libraries needed
-Install Eigen on Pi 4b by running
+Install `Eigen` on Pi 4b by running
 ```
 sudo apt-get install libeigen3-dev
 ```
@@ -16,7 +16,8 @@ cd pigpio-master
 make
 sudo make install
 ```
-A full reference to `pigpio` library can be found at http://abyz.me.uk/rpi/pigpio/cif.html#gpioSetISRFunc
+A full reference to `pigpio` library can be found at http://abyz.me.uk/rpi/pigpio/cif.html#gpioSetISRFunc.
+
 Install i2c library on Pi 0 by running 
 ```
 sudo apt-get install libi2c-dev
@@ -50,7 +51,7 @@ Make sure that both Pi are connected to Wifi `socket`. Then, follow the next ste
       static domain_name_servers=<DNS_IP>
       ```
       where `<NETWORK>` can be either `wlan0` or `eth0`. 
-      `<STATIC_IP>` is the IP we want to set for the Pi and it has to be out side of the pool of DHCP-addresses of the router.
+      `<STATIC_IP>` is the IP we want to set for the Pi.
       `<ROUTER_IP>` follows from the step 1.
       `<DNS_IP>` follows from the step 2 or can be set manually, e.g. Google DNS `8.8.8.8`.
        
@@ -101,6 +102,7 @@ The connection between the motor controller L298N and Pi 4b is shown as follows
 | IN2           | GPIO 24       |
 | ENA           | GPIO 25       |
 | GND           | GND           |
+
 Moreover, connect L298N to the power supply 12 V.
 
 ## Complile and run
